@@ -69,8 +69,8 @@ pub struct SubmitFailed {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
 pub enum SubmitFailureReason {
-    /// The router's store layer rejected the commit.
-    StoreRejected,
+    /// The router could not persist the message.
+    PersistenceRejected,
     /// The recipient name does not resolve to a known actor.
     UnknownRecipient,
 }

@@ -38,5 +38,5 @@ If your change adds a new request or reply variant, edit
   consumer.
 - Routing / delivery logic — that's `persona-router`'s
   internal state machine.
-- Storage — that goes through `signal-persona-store` to
-  the store actor.
+- Persistence policy — that's owned by `persona-router` and
+  implemented through its own state actor using `persona-sema`.

@@ -80,7 +80,7 @@ Architectural-truth tests (per
 
 - No actors. No daemons. No `tokio`.
 - No transport (UDS path, reconnect, timeouts).
-- No routing logic. No storage. No terminal logic.
+- No routing logic. No persistence policy. No terminal logic.
 
 ## Code map
 
@@ -98,5 +98,5 @@ tests/
 - `~/primary/reports/designer/73-signal-derive-research.md` —
   the `signal_channel!` macro decision
 - `signal-core/src/channel.rs` — the macro
-- `signal-persona-store/ARCHITECTURE.md` — the next-hop
-  channel from the router
+- `~/primary/reports/designer/78-convergence-with-operator-77.md`
+  — convergence on retiring the store-channel boundary
