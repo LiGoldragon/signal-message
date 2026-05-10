@@ -6,15 +6,16 @@
 
 use signal_core::{FrameBody, Request, SemaVerb};
 use signal_persona_message::{
-    Frame, InboxMessage, InboxQuery, InboxResult, MessageReply, MessageRequest, SubmitFailed,
-    SubmitFailureReason, SubmitMessage, SubmitReceipt,
+    Frame, InboxEntry, InboxListing, InboxQuery, MessageBody, MessageRecipient, MessageReply,
+    MessageRequest, MessageSender, MessageSlot, MessageSubmission, SubmissionAcceptance,
+    SubmissionRejection, SubmissionRejectionReason,
 };
 
 #[test]
-fn submit_request_round_trips_through_length_prefixed_frame() {
-    let request = MessageRequest::Submit(SubmitMessage {
-        recipient: "designer".into(),
-        body: "stack test".into(),
+fn message_submission_request_round_trips_through_length_prefixed_frame() {
+    let request = MessageRequest::MessageSubmission(MessageSubmission {
+        recipient: MessageRecipient::new("designer"),
+        body: MessageBody::new("stack test"),
     });
     let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
 
@@ -32,8 +33,8 @@ fn submit_request_round_trips_through_length_prefixed_frame() {
 
 #[test]
 fn inbox_query_round_trips_through_length_prefixed_frame() {
-    let request = MessageRequest::Inbox(InboxQuery {
-        recipient: "designer".into(),
+    let request = MessageRequest::InboxQuery(InboxQuery {
+        recipient: MessageRecipient::new("designer"),
     });
     let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
 
@@ -49,8 +50,10 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
 }
 
 #[test]
-fn submit_ok_reply_round_trips() {
-    let reply = MessageReply::SubmitOk(SubmitReceipt { message_slot: 1024 });
+fn submission_accepted_reply_round_trips() {
+    let reply = MessageReply::SubmissionAccepted(SubmissionAcceptance {
+        message_slot: MessageSlot::new(1024),
+    });
     let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
         reply.clone(),
     )));
@@ -67,9 +70,9 @@ fn submit_ok_reply_round_trips() {
 }
 
 #[test]
-fn submit_failed_reply_round_trips_with_typed_reason() {
-    let reply = MessageReply::SubmitFailed(SubmitFailed {
-        reason: SubmitFailureReason::UnknownRecipient,
+fn submission_rejected_reply_round_trips_with_typed_reason() {
+    let reply = MessageReply::SubmissionRejected(SubmissionRejection {
+        reason: SubmissionRejectionReason::RecipientNotFound,
     });
     let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
         reply.clone(),
@@ -82,23 +85,23 @@ fn submit_failed_reply_round_trips_with_typed_reason() {
         FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
             assert_eq!(decoded_reply, reply);
         }
-        other => panic!("expected SubmitFailed reply, got {other:?}"),
+        other => panic!("expected SubmissionRejected reply, got {other:?}"),
     }
 }
 
 #[test]
-fn inbox_result_round_trips_through_length_prefixed_frame() {
-    let reply = MessageReply::InboxResult(InboxResult {
+fn inbox_listing_round_trips_through_length_prefixed_frame() {
+    let reply = MessageReply::InboxListing(InboxListing {
         messages: vec![
-            InboxMessage {
-                message_slot: 1,
-                sender: "operator".into(),
-                body: "first".into(),
+            InboxEntry {
+                message_slot: MessageSlot::new(1),
+                sender: MessageSender::new("operator"),
+                body: MessageBody::new("first"),
             },
-            InboxMessage {
-                message_slot: 2,
-                sender: "operator".into(),
-                body: "second".into(),
+            InboxEntry {
+                message_slot: MessageSlot::new(2),
+                sender: MessageSender::new("operator"),
+                body: MessageBody::new("second"),
             },
         ],
     });
@@ -113,23 +116,25 @@ fn inbox_result_round_trips_through_length_prefixed_frame() {
         FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
             assert_eq!(decoded_reply, reply);
         }
-        other => panic!("expected InboxResult reply, got {other:?}"),
+        other => panic!("expected InboxListing reply, got {other:?}"),
     }
 }
 
 #[test]
-fn from_impl_lifts_submit_message_into_request() {
-    let payload = SubmitMessage {
-        recipient: "designer".into(),
-        body: "via from".into(),
+fn from_impl_lifts_message_submission_into_request() {
+    let payload = MessageSubmission {
+        recipient: MessageRecipient::new("designer"),
+        body: MessageBody::new("via from"),
     };
     let request: MessageRequest = payload.clone().into();
-    assert_eq!(request, MessageRequest::Submit(payload));
+    assert_eq!(request, MessageRequest::MessageSubmission(payload));
 }
 
 #[test]
-fn from_impl_lifts_submit_receipt_into_reply() {
-    let receipt = SubmitReceipt { message_slot: 7 };
-    let reply: MessageReply = receipt.clone().into();
-    assert_eq!(reply, MessageReply::SubmitOk(receipt));
+fn from_impl_lifts_submission_acceptance_into_reply() {
+    let acceptance = SubmissionAcceptance {
+        message_slot: MessageSlot::new(7),
+    };
+    let reply: MessageReply = acceptance.clone().into();
+    assert_eq!(reply, MessageReply::SubmissionAccepted(acceptance));
 }

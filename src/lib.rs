@@ -15,76 +15,128 @@ use signal_core::signal_channel;
 
 // ─── Payloads ──────────────────────────────────────────────
 
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MessageRecipient(String);
+
+impl MessageRecipient {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MessageSender(String);
+
+impl MessageSender {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MessageBody(String);
+
+impl MessageBody {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MessageSlot(u64);
+
+impl MessageSlot {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn into_u64(self) -> u64 {
+        self.0
+    }
+}
+
 /// Submit a message from the calling agent to a recipient.
 /// The sender is resolved by the router from the calling
 /// process's ancestry — not provided by the caller, per the
 /// "infrastructure mints identity, time, sender" rule
 /// (`ESSENCE.md` §"Infrastructure mints identity").
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub struct SubmitMessage {
+pub struct MessageSubmission {
     /// The recipient agent's name.
-    pub recipient: String,
+    pub recipient: MessageRecipient,
     /// The body of the message — opaque text.
-    pub body: String,
+    pub body: MessageBody,
 }
 
-/// Reply to a successful `Submit`. The router has committed
+/// Reply to an accepted message submission. The router has committed
 /// the message and assigned it a slot in `persona-sema`.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub struct SubmitReceipt {
+pub struct SubmissionAcceptance {
     /// The slot under which the message was persisted.
-    pub message_slot: u64,
+    pub message_slot: MessageSlot,
 }
 
 /// Query the current inbox for a recipient. The reply
 /// carries the messages currently visible to that recipient.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
 pub struct InboxQuery {
-    pub recipient: String,
+    pub recipient: MessageRecipient,
 }
 
 /// Reply to an `Inbox` query — the messages currently
 /// addressed to the recipient, in slot order.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub struct InboxResult {
-    pub messages: Vec<InboxMessage>,
+pub struct InboxListing {
+    pub messages: Vec<InboxEntry>,
 }
 
 /// One message visible in an inbox. Sender is the
 /// router-resolved sender at submit time.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub struct InboxMessage {
-    pub message_slot: u64,
-    pub sender: String,
-    pub body: String,
+pub struct InboxEntry {
+    pub message_slot: MessageSlot,
+    pub sender: MessageSender,
+    pub body: MessageBody,
 }
 
-/// A failure on `Submit` — the router could not commit the
+/// A rejected submission — the router could not commit the
 /// message. The router carries the typed reason; the caller
 /// can pattern-match on it.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub struct SubmitFailed {
-    pub reason: SubmitFailureReason,
+pub struct SubmissionRejection {
+    pub reason: SubmissionRejectionReason,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub enum SubmitFailureReason {
+pub enum SubmissionRejectionReason {
     /// The router could not persist the message.
-    PersistenceRejected,
+    StoreRejected,
     /// The recipient name does not resolve to a known actor.
-    UnknownRecipient,
+    RecipientNotFound,
 }
 
 // ─── Channel declaration ───────────────────────────────────
 
 signal_channel! {
     request MessageRequest {
-        Submit(SubmitMessage),
-        Inbox(InboxQuery),
+        MessageSubmission(MessageSubmission),
+        InboxQuery(InboxQuery),
     }
     reply MessageReply {
-        SubmitOk(SubmitReceipt),
-        SubmitFailed(SubmitFailed),
-        InboxResult(InboxResult),
+        SubmissionAccepted(SubmissionAcceptance),
+        SubmissionRejected(SubmissionRejection),
+        InboxListing(InboxListing),
     }
 }

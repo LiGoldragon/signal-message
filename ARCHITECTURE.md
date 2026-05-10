@@ -1,8 +1,10 @@
 # ARCHITECTURE — signal-persona-message
 
 The Signal contract between `message-cli` (sender) and
-`persona-router` (receiver). The whole channel is one
-`signal_channel!` invocation in `src/lib.rs`.
+`persona-router` (receiver). It relates one CLI sender to the
+router ingress: the CLI supplies recipient + body content, while
+the router mints sender identity and message slots. The whole
+channel is one `signal_channel!` invocation in `src/lib.rs`.
 
 ## Channel
 
@@ -12,17 +14,18 @@ The Signal contract between `message-cli` (sender) and
 | Receiver (reply side) | `persona-router` (the routing daemon) |
 
 When a user runs `message designer "hi"`, message-cli
-constructs a `MessageRequest::Submit(...)`, wraps it in a
+constructs a `MessageRequest::MessageSubmission(...)`, wraps it in a
 `Frame`, encodes via `encode_length_prefixed`, and writes
 the bytes to persona-router's UDS. The router decodes,
-matches on the variant, and replies with `MessageReply::SubmitOk(...)`
-or `MessageReply::SubmitFailed(...)`.
+matches on the variant, and replies with
+`MessageReply::SubmissionAccepted(...)` or
+`MessageReply::SubmissionRejected(...)`.
 
 ## Record source
 
 This contract imports no domain records from
-`signal-persona`; the payloads (`SubmitMessage`,
-`SubmitReceipt`, etc.) are defined in this crate because
+`signal-persona`; the payloads (`MessageSubmission`,
+`SubmissionAcceptance`, etc.) are defined in this crate because
 they are the channel's *interface vocabulary*, not records
 that travel beyond this channel.
 
@@ -35,9 +38,9 @@ Closed enums declared via `signal_channel!`:
 
 ```
 MessageRequest         MessageReply
-├─ Submit(SubmitMessage)   ├─ SubmitOk(SubmitReceipt)
-└─ Inbox(InboxQuery)       ├─ SubmitFailed(SubmitFailed { reason })
-                           └─ InboxResult(InboxResult)
+├─ MessageSubmission       ├─ SubmissionAccepted
+└─ InboxQuery              ├─ SubmissionRejected { reason }
+                           └─ InboxListing
 ```
 
 No `Unknown` variant; no string-tagged dispatch.
@@ -59,7 +62,10 @@ breaking and require a coordinated upgrade of
 ;; produces this wire frame (length-prefix omitted for clarity)
 ;; Frame { auth: Some(LocalOperatorProof("operator")),
 ;;         body: Request(Operation { verb: Assert,
-;;                                   payload: Submit(SubmitMessage { recipient: "designer", body: "hi" }) }) }
+;;                                   payload: MessageSubmission(MessageSubmission {
+;;                                       recipient: MessageRecipient::new("designer"),
+;;                                       body: MessageBody::new("hi"),
+;;                                   }) }) }
 ```
 
 ## Round trips
