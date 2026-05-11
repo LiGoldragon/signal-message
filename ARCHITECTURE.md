@@ -63,8 +63,7 @@ breaking and require a coordinated upgrade of
 (Send designer "hi")
 
 ;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { auth: None,
-;;         body: Request(Operation { verb: Assert,
+;; Frame { body: Request(Operation { verb: Assert,
 ;;                                   payload: MessageSubmission(MessageSubmission {
 ;;                                       recipient: MessageRecipient::new("designer"),
 ;;                                       body: MessageBody::new("hi"),
