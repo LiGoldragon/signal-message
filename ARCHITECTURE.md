@@ -29,8 +29,10 @@ This contract imports no domain records from
 they are the channel's *interface vocabulary*, not records
 that travel beyond this channel.
 
-(If a payload turns out to be widely shared, we lift it to
-`signal-persona`'s umbrella records and import it here.)
+(If a payload turns out to belong to another relation, make or update the
+relation-specific `signal-persona-*` contract for that relation. Do not lift
+message-channel payloads into `signal-persona`; that crate is the top-level
+engine-manager contract.)
 
 ## Messages
 

@@ -81,7 +81,7 @@ pub struct MessageSubmission {
 }
 
 /// Reply to an accepted message submission. The router has committed
-/// the message and assigned it a slot in `persona-sema`.
+/// the message through router-owned state and assigned it a durable slot.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SubmissionAcceptance {
     /// The slot under which the message was persisted.
