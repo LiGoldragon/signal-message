@@ -3,8 +3,9 @@
 The Signal contract between `message-cli` (sender) and
 `persona-router` (receiver). It relates one CLI sender to the
 router ingress: the CLI supplies recipient + body content, while
-the router mints sender identity and message slots. The whole
-channel is one `signal_channel!` invocation in `src/lib.rs`.
+router/daemon ingress stamps provenance from the accepted socket
+context and the router mints message slots. The whole channel is
+one `signal_channel!` invocation in `src/lib.rs`.
 
 ## Channel
 
@@ -13,11 +14,11 @@ channel is one `signal_channel!` invocation in `src/lib.rs`.
 | Sender (request side) | `persona-message` (the `message` CLI) |
 | Receiver (reply side) | `persona-router` (the routing daemon) |
 
-When a user runs `message designer "hi"`, message-cli
+When a user runs `message '(Send designer "hi")'`, message-cli
 constructs a `MessageRequest::MessageSubmission(...)`, wraps it in a
-`Frame`, encodes via `encode_length_prefixed`, and writes
+sender-free `Frame`, encodes via `encode_length_prefixed`, and writes
 the bytes to persona-router's UDS. The router decodes,
-matches on the variant, and replies with
+stamps provenance at ingress, matches on the variant, and replies with
 `MessageReply::SubmissionAccepted(...)` or
 `MessageReply::SubmissionRejected(...)`.
 
@@ -59,10 +60,10 @@ breaking and require a coordinated upgrade of
 
 ```nota
 ;; the CLI invocation
-(Submit designer "hi")
+(Send designer "hi")
 
 ;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { auth: Some(LocalOperatorProof("operator")),
+;; Frame { auth: None,
 ;;         body: Request(Operation { verb: Assert,
 ;;                                   payload: MessageSubmission(MessageSubmission {
 ;;                                       recipient: MessageRecipient::new("designer"),

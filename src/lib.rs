@@ -68,9 +68,9 @@ impl MessageSlot {
 }
 
 /// Submit a message from the calling agent to a recipient.
-/// The sender is resolved by the router from the calling
-/// process's ancestry — not provided by the caller, per the
-/// "infrastructure mints identity, time, sender" rule
+/// The sender is resolved by router/daemon ingress from the
+/// accepted socket context, not provided by the caller, per
+/// the "infrastructure mints identity, time, sender" rule
 /// (`ESSENCE.md` §"Infrastructure mints identity").
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
 pub struct MessageSubmission {
