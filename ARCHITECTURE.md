@@ -72,10 +72,10 @@ breaking and require a coordinated upgrade of
 
 ## Round trips
 
-Each variant of `MessageRequest` and `MessageReply` has a
-round-trip test in `tests/round_trip.rs`:
-text → typed → frame → length-prefixed bytes →
-decoded frame → typed.
+Each variant of `MessageRequest` and `MessageReply` has a frame round-trip
+test in `tests/round_trip.rs`. Representative NOTA text witnesses cover
+`MessageSubmission` and `SubmissionAcceptance`; root channel enum text codecs
+come from `signal_core::signal_channel!`.
 
 Architectural-truth tests (per
 `~/primary/skills/architectural-truth-tests.md`) fire when:
@@ -96,7 +96,7 @@ Architectural-truth tests (per
 src/
 └── lib.rs    — payloads + signal_channel! invocation
 tests/
-└── round_trip.rs — per-variant wire-form round trips
+└── round_trip.rs — per-variant frame round trips + NOTA text witnesses
 ```
 
 ## See also
