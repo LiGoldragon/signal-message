@@ -113,6 +113,14 @@ pub struct InboxQuery {
     pub recipient: MessageRecipient,
 }
 
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
+pub enum MessageOperationKind {
+    MessageSubmission,
+    InboxQuery,
+}
+
 /// Reply to an `Inbox` query — the messages currently
 /// addressed to the recipient, in slot order.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -156,5 +164,14 @@ signal_channel! {
         SubmissionAccepted(SubmissionAcceptance),
         SubmissionRejected(SubmissionRejection),
         InboxListing(InboxListing),
+    }
+}
+
+impl MessageRequest {
+    pub fn operation_kind(&self) -> MessageOperationKind {
+        match self {
+            Self::MessageSubmission(_) => MessageOperationKind::MessageSubmission,
+            Self::InboxQuery(_) => MessageOperationKind::InboxQuery,
+        }
     }
 }

@@ -7,9 +7,9 @@
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
 use signal_core::{FrameBody, Request, SemaVerb};
 use signal_persona_message::{
-    Frame, InboxEntry, InboxListing, InboxQuery, MessageBody, MessageRecipient, MessageReply,
-    MessageRequest, MessageSender, MessageSlot, MessageSubmission, SubmissionAcceptance,
-    SubmissionRejection, SubmissionRejectionReason,
+    Frame, InboxEntry, InboxListing, InboxQuery, MessageBody, MessageOperationKind,
+    MessageRecipient, MessageReply, MessageRequest, MessageSender, MessageSlot, MessageSubmission,
+    SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
 };
 
 #[test]
@@ -138,6 +138,37 @@ fn from_impl_lifts_submission_acceptance_into_reply() {
     };
     let reply: MessageReply = acceptance.clone().into();
     assert_eq!(reply, MessageReply::SubmissionAccepted(acceptance));
+}
+
+#[test]
+fn message_request_exposes_contract_owned_operation_kind() {
+    let submission = MessageRequest::MessageSubmission(MessageSubmission {
+        recipient: MessageRecipient::new("designer"),
+        body: MessageBody::new("kind witness"),
+    });
+    let inbox = MessageRequest::InboxQuery(InboxQuery {
+        recipient: MessageRecipient::new("designer"),
+    });
+
+    assert_eq!(
+        submission.operation_kind(),
+        MessageOperationKind::MessageSubmission
+    );
+    assert_eq!(inbox.operation_kind(), MessageOperationKind::InboxQuery);
+}
+
+#[test]
+fn message_operation_kind_round_trips_through_nota_text() {
+    let mut encoder = Encoder::new();
+    MessageOperationKind::MessageSubmission
+        .encode(&mut encoder)
+        .expect("encode operation kind");
+    let text = encoder.into_string();
+    let mut decoder = Decoder::new(&text);
+    let recovered = MessageOperationKind::decode(&mut decoder).expect("decode operation kind");
+
+    assert_eq!(recovered, MessageOperationKind::MessageSubmission);
+    assert_eq!(text, "MessageSubmission");
 }
 
 #[test]
