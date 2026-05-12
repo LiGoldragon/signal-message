@@ -4,6 +4,7 @@
 //! Each test names exactly what shape it pins down; per the
 //! "blunt test names" convention.
 
+use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
 use signal_core::{FrameBody, Request, SemaVerb};
 use signal_persona_message::{
     Frame, InboxEntry, InboxListing, InboxQuery, MessageBody, MessageRecipient, MessageReply,
@@ -137,4 +138,37 @@ fn from_impl_lifts_submission_acceptance_into_reply() {
     };
     let reply: MessageReply = acceptance.clone().into();
     assert_eq!(reply, MessageReply::SubmissionAccepted(acceptance));
+}
+
+#[test]
+fn message_submission_request_round_trips_through_nota_text() {
+    let request = MessageRequest::MessageSubmission(MessageSubmission {
+        recipient: MessageRecipient::new("designer"),
+        body: MessageBody::new("stack test"),
+    });
+
+    let mut encoder = Encoder::new();
+    request.encode(&mut encoder).expect("encode request");
+    let text = encoder.into_string();
+    let mut decoder = Decoder::new(&text);
+    let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
+
+    assert_eq!(recovered, request);
+    assert_eq!(text, "(MessageSubmission designer \"stack test\")");
+}
+
+#[test]
+fn submission_accepted_reply_round_trips_through_nota_text() {
+    let reply = MessageReply::SubmissionAccepted(SubmissionAcceptance {
+        message_slot: MessageSlot::new(7),
+    });
+
+    let mut encoder = Encoder::new();
+    reply.encode(&mut encoder).expect("encode reply");
+    let text = encoder.into_string();
+    let mut decoder = Decoder::new(&text);
+    let recovered = MessageReply::decode(&mut decoder).expect("decode reply");
+
+    assert_eq!(recovered, reply);
+    assert_eq!(text, "(SubmissionAcceptance 7)");
 }
