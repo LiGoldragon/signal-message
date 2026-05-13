@@ -7,13 +7,13 @@ The Signal contract for the engine's message-ingress path. It owns
 
 ```text
 Relation A — Client message
-  endpoint:   message CLI (sender)             →  persona-message-daemon (receiver)
+  endpoint:   message CLI (sender)             →  persona-message (receiver)
   socket:     message.sock (mode 0660)
   legal payloads (request):   MessageSubmission | InboxQuery
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | InboxListing | MessageRequestUnimplemented
 
 Relation B — Router ingress
-  endpoint:   persona-message-daemon (sender)  →  persona-router (receiver)
+  endpoint:   persona-message (sender)         →  persona-router (receiver)
   socket:     router.sock (mode 0600)
   legal payloads (request):   StampedMessageSubmission
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
@@ -24,7 +24,7 @@ When a user runs `message '(Send designer "hi")'`:
 1. `message` CLI constructs a `MessageRequest::MessageSubmission(...)`,
    encodes it as a length-prefixed Signal frame, writes to
    `message.sock`.
-2. `persona-message-daemon` decodes the frame, mints
+2. `persona-message` decodes the frame, mints
    `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED on the
    peer connection, packages the submission + origin + ingress
    timestamp as `StampedMessageSubmission`, and forwards it to
@@ -102,7 +102,7 @@ valid request variant has no built behavior yet.
 
 ### Origin bridging — `StampedMessageSubmission`
 
-`persona-message-daemon` mints `MessageOrigin::External(ConnectionClass)` from
+`persona-message` mints `MessageOrigin::External(ConnectionClass)` from
 SO_PEERCRED on each connecting peer and forwards a `MessageSubmission` to
 router. The bridge record:
 
@@ -111,13 +111,13 @@ StampedMessageSubmission
   | submission:  MessageSubmission
   | origin:      MessageOrigin              (from signal-persona-auth)
   | stamped_at:  TimestampNanos             (ingress observation time;
-                                             minted by persona-message-daemon)
+                                             minted by persona-message)
 ```
 
 Router accepts `StampedMessageSubmission` on its internal `router.sock` from
-`persona-message-daemon`. Plain `MessageSubmission` is the shape on the CLI
-side (Relation A); the daemon performs the stamping before forwarding on
-Relation B.
+`persona-message`. Plain `MessageSubmission` is the shape on the CLI
+side (Relation A); the message component performs the stamping before
+forwarding on Relation B.
 
 **Timestamp authority** (per
 `~/primary/reports/designer/144-prototype-architecture-final-cleanup-after-da36.md`
@@ -125,7 +125,7 @@ Relation B.
 
 | Field | Minted by | Meaning |
 |---|---|---|
-| `StampedMessageSubmission.stamped_at` | `persona-message-daemon` | Ingress observation time. Audit/provenance. |
+| `StampedMessageSubmission.stamped_at` | `persona-message` | Ingress observation time. Audit/provenance. |
 | Router commit time (on the message slot when persisted) | `persona-router` | Durable commit time. Source of truth for "when did this land in the engine." |
 
 Ingress timestamp is provenance; router commit time is durable message
