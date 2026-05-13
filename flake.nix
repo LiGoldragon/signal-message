@@ -1,5 +1,5 @@
 {
-  description = "signal-persona-message — Signal contract for message-cli ↔ persona-router";
+  description = "signal-persona-message — Signal contract for Persona message ingress";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

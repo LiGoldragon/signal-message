@@ -1,7 +1,8 @@
 # signal-persona-message
 
-The Signal contract between **`message-cli`** (sender) and
-**`persona-router`** (receiver).
+The Signal contract for Persona message ingress. It carries the client-message
+relation (`message` CLI to `persona-message-daemon`) and the router-ingress
+relation (`persona-message-daemon` to `persona-router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
 (`MessageRequest`, `MessageReply`) declared via the
@@ -11,16 +12,20 @@ ARE the messages this channel carries.
 ## Quick reference
 
 ```rust
-use signal_persona_message::{Frame, MessageRequest, SubmitMessage};
 use signal_core::{FrameBody, Request};
+use signal_persona_message::{
+    Frame, MessageBody, MessageKind, MessageRecipient, MessageRequest,
+    MessageSubmission,
+};
 
-let request = MessageRequest::Submit(SubmitMessage {
-    recipient: "designer".into(),
-    body: "stack test".into(),
+let request = MessageRequest::MessageSubmission(MessageSubmission {
+    recipient: MessageRecipient::new("designer"),
+    kind: MessageKind::Send,
+    body: MessageBody::new("stack test"),
 });
 let frame = Frame::new(FrameBody::Request(Request::assert(request)));
 let bytes = frame.encode_length_prefixed()?;
-// send bytes on the persona-router UDS
+// send bytes on message.sock; persona-message-daemon stamps before router.sock
 ```
 
 ## See also
