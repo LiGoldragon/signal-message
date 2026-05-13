@@ -43,10 +43,60 @@ Closed enums declared via `signal_channel!`:
 MessageRequest         MessageReply
 ├─ MessageSubmission       ├─ SubmissionAccepted
 └─ InboxQuery              ├─ SubmissionRejected { reason }
-                           └─ InboxListing
+                           ├─ InboxListing
+                           └─ MessageRequestUnimplemented(MessageUnimplementedReason)
 ```
 
 No `Unknown` variant; no string-tagged dispatch.
+
+### `MessageKind` — typed body semantics
+
+Per `/127 §4.1 D2` and
+`~/primary/reports/designer/143-prototype-readiness-gap-audit.md` §3:
+`MessageBody(String)` stays freeform; specificity grows via a closed
+`MessageKind` enum carried alongside the body.
+
+```text
+MessageKind (closed enum, prototype-scope)
+  | Send
+  | Inbox
+  -- future variants land as coordinated schema bumps
+```
+
+The `MessageSubmission` record carries `kind: MessageKind` so router and
+harness can dispatch on the typed kind rather than parsing the freeform body.
+
+### Skeleton honesty (Unimplemented reply)
+
+Per
+`~/primary/reports/designer/143-prototype-readiness-gap-audit.md` §4.3:
+
+```text
+MessageUnimplementedReason
+  | NotInPrototypeScope
+  | DependencyMissing(DependencyKind)
+  | ResourceUnavailable(ResourceKind)
+```
+
+`MessageRequestUnimplemented(NotInPrototypeScope)` is the typed reply when a
+valid request variant has no built behavior yet.
+
+### Origin bridging — `StampedMessageSubmission`
+
+`persona-message-daemon` mints `MessageOrigin::External(ConnectionClass)` from
+SO_PEERCRED on each connecting peer and forwards a `MessageSubmission` to
+router. The bridge record:
+
+```text
+StampedMessageSubmission
+  | submission:  MessageSubmission
+  | origin:      MessageOrigin              (from signal-persona-auth)
+  | stamped_at:  TimestampNanos             (manager/daemon-side timestamp)
+```
+
+Router accepts `StampedMessageSubmission` on its internal `router.sock` from
+`persona-message-daemon`. Plain `MessageSubmission` is the shape on the CLI
+side (one NOTA in / one NOTA out); the daemon performs the stamping.
 
 ## Versioning
 
