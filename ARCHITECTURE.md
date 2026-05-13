@@ -1,34 +1,53 @@
 # ARCHITECTURE — signal-persona-message
 
-The Signal contract between `message-cli` (sender) and
-`persona-router` (receiver). It relates one CLI sender to the
-router ingress: the CLI supplies recipient + body content, while
-router/daemon ingress stamps provenance from the accepted socket
-context and the router mints message slots. The whole channel is
-one `signal_channel!` invocation in `src/lib.rs`.
+The Signal contract for the engine's message-ingress path. It owns
+**two named relations sharing one root family** (`MessageRequest` /
+`MessageReply`), wired across two different sockets. Per
+`~/primary/reports/designer/144-prototype-architecture-final-cleanup-after-da36.md` §2.1:
 
-## Channel
+```text
+Relation A — Client message
+  endpoint:   message CLI (sender)             →  persona-message-daemon (receiver)
+  socket:     message.sock (mode 0660)
+  legal payloads (request):   MessageSubmission | InboxQuery
+  legal payloads (reply):     SubmissionAccepted | SubmissionRejected | InboxListing | MessageRequestUnimplemented
 
-| Side | Component |
-|---|---|
-| Sender (request side) | `persona-message` (the `message` CLI) |
-| Receiver (reply side) | `persona-router` (the routing daemon) |
+Relation B — Router ingress
+  endpoint:   persona-message-daemon (sender)  →  persona-router (receiver)
+  socket:     router.sock (mode 0600)
+  legal payloads (request):   StampedMessageSubmission
+  legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
+```
 
-When a user runs `message '(Send designer "hi")'`, message-cli
-constructs a `MessageRequest::MessageSubmission(...)`, wraps it in a
-sender-free `Frame`, encodes via `encode_length_prefixed`, and writes
-the bytes to persona-router's UDS. The router decodes,
-stamps provenance at ingress, matches on the variant, and replies with
-`MessageReply::SubmissionAccepted(...)` or
-`MessageReply::SubmissionRejected(...)`.
+When a user runs `message '(Send designer "hi")'`:
+
+1. `message` CLI constructs a `MessageRequest::MessageSubmission(...)`,
+   encodes it as a length-prefixed Signal frame, writes to
+   `message.sock`.
+2. `persona-message-daemon` decodes the frame, mints
+   `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED on the
+   peer connection, packages the submission + origin + ingress
+   timestamp as `StampedMessageSubmission`, and forwards it to
+   `router.sock`.
+3. `persona-router` accepts the stamped submission, persists a
+   message slot with router-minted commit time, and replies with
+   `SubmissionAccepted(slot)` or `SubmissionRejected(reason)`.
+4. The daemon forwards the reply back to the CLI client.
+
+**Payload-by-payload legality**: `MessageSubmission` is legal only on
+Relation A (the daemon may not relay a plain `MessageSubmission` to
+router without stamping it). `StampedMessageSubmission` is legal only
+on Relation B (the CLI may not construct a stamped submission since
+it does not own a `MessageOrigin` mint). Witnesses enforce both rules.
 
 ## Record source
 
 This contract imports no domain records from
 `signal-persona`; the payloads (`MessageSubmission`,
-`SubmissionAcceptance`, etc.) are defined in this crate because
-they are the channel's *interface vocabulary*, not records
-that travel beyond this channel.
+`SubmissionAcceptance`, `StampedMessageSubmission`, etc.) are defined
+in this crate because they are the channel's *interface vocabulary*,
+not records that travel beyond this channel. `MessageOrigin` (embedded
+in `StampedMessageSubmission`) is imported from `signal-persona-auth`.
 
 (If a payload turns out to belong to another relation, make or update the
 relation-specific `signal-persona-*` contract for that relation. Do not lift
@@ -91,12 +110,26 @@ router. The bridge record:
 StampedMessageSubmission
   | submission:  MessageSubmission
   | origin:      MessageOrigin              (from signal-persona-auth)
-  | stamped_at:  TimestampNanos             (manager/daemon-side timestamp)
+  | stamped_at:  TimestampNanos             (ingress observation time;
+                                             minted by persona-message-daemon)
 ```
 
 Router accepts `StampedMessageSubmission` on its internal `router.sock` from
 `persona-message-daemon`. Plain `MessageSubmission` is the shape on the CLI
-side (one NOTA in / one NOTA out); the daemon performs the stamping.
+side (Relation A); the daemon performs the stamping before forwarding on
+Relation B.
+
+**Timestamp authority** (per
+`~/primary/reports/designer/144-prototype-architecture-final-cleanup-after-da36.md`
+§3.5): two distinct timestamps with distinct minters:
+
+| Field | Minted by | Meaning |
+|---|---|---|
+| `StampedMessageSubmission.stamped_at` | `persona-message-daemon` | Ingress observation time. Audit/provenance. |
+| Router commit time (on the message slot when persisted) | `persona-router` | Durable commit time. Source of truth for "when did this land in the engine." |
+
+Ingress timestamp is provenance; router commit time is durable message
+state. Router does not adopt the ingress timestamp as durable truth.
 
 ## Versioning
 
