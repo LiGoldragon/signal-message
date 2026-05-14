@@ -59,14 +59,32 @@ engine-manager contract.)
 Closed enums declared via `signal_channel!`:
 
 ```
-MessageRequest         MessageReply
-├─ MessageSubmission       ├─ SubmissionAccepted
-└─ InboxQuery              ├─ SubmissionRejected { reason }
-                           ├─ InboxListing
-                           └─ MessageRequestUnimplemented(MessageUnimplementedReason)
+MessageRequest              MessageReply
+├─ MessageSubmission         ├─ SubmissionAccepted
+├─ StampedMessageSubmission  ├─ SubmissionRejected { reason }
+└─ InboxQuery                ├─ InboxListing
+                              └─ MessageRequestUnimplemented(MessageUnimplementedReason)
 ```
 
 No `Unknown` variant; no string-tagged dispatch.
+
+### Signal root verbs
+
+Every `MessageRequest` variant declares its root verb through
+`MessageRequest::signal_verb()`. The method currently returns
+`signal_core::SemaVerb`; this crate keeps that spelling until the
+`signal-core` breaking pass lands `SignalVerb`.
+
+```text
+MessageSubmission        -> Assert
+StampedMessageSubmission -> Assert
+InboxQuery               -> Match
+```
+
+`InboxQuery` is read-shaped. It is wrapped with `Request::match_records(...)`,
+not `Request::assert(...)`. Query algebra such as projection or aggregation
+belongs in typed domain query payloads that the receiver lowers to
+`sema-engine`, not in the Signal frame root.
 
 ### `MessageKind` — typed body semantics
 
@@ -150,6 +168,12 @@ breaking and require a coordinated upgrade of
 ;;                                   payload: MessageSubmission(MessageSubmission {
 ;;                                       recipient: MessageRecipient::new("designer"),
 ;;                                       body: MessageBody::new("hi"),
+;;                                   }) }) }
+
+;; inbox reads use the Match root
+;; Frame { body: Request(Operation { verb: Match,
+;;                                   payload: InboxQuery(InboxQuery {
+;;                                       recipient: MessageRecipient::new("designer"),
 ;;                                   }) }) }
 ```
 

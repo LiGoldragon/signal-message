@@ -28,6 +28,10 @@ let bytes = frame.encode_length_prefixed()?;
 // send bytes on message.sock; persona-message-daemon stamps before router.sock
 ```
 
+Submissions are write-shaped and use the `Assert` root. `InboxQuery`
+is read-shaped and uses `Request::match_records(...)`; the contract-owned
+`MessageRequest::signal_verb()` method is the witness for this mapping.
+
 ## See also
 
 - `ARCHITECTURE.md` — channel role + boundaries

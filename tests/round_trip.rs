@@ -31,6 +31,7 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
             assert_eq!(verb, SemaVerb::Assert);
+            assert_eq!(request.signal_verb(), SemaVerb::Assert);
             assert_eq!(payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
@@ -56,6 +57,7 @@ fn stamped_message_submission_request_round_trips_through_length_prefixed_frame(
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
             assert_eq!(verb, SemaVerb::Assert);
+            assert_eq!(request.signal_verb(), SemaVerb::Assert);
             assert_eq!(payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
@@ -67,16 +69,18 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
     let request = MessageRequest::InboxQuery(InboxQuery {
         recipient: MessageRecipient::new("designer"),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = Frame::new(FrameBody::Request(Request::match_records(request.clone())));
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { payload, .. }) => {
+        FrameBody::Request(Request::Operation { verb, payload }) => {
+            assert_eq!(verb, SemaVerb::Match);
+            assert_eq!(request.signal_verb(), SemaVerb::Match);
             assert_eq!(payload, request);
         }
-        other => panic!("expected request, got {other:?}"),
+        other => panic!("expected Match request, got {other:?}"),
     }
 }
 
@@ -221,6 +225,31 @@ fn message_request_exposes_contract_owned_operation_kind() {
         MessageOperationKind::StampedMessageSubmission
     );
     assert_eq!(inbox.operation_kind(), MessageOperationKind::InboxQuery);
+}
+
+#[test]
+fn message_request_variants_declare_expected_signal_root_verbs() {
+    let submission = MessageRequest::MessageSubmission(MessageSubmission {
+        recipient: MessageRecipient::new("designer"),
+        kind: MessageKind::Send,
+        body: MessageBody::new("verb witness"),
+    });
+    let stamped = MessageRequest::StampedMessageSubmission(StampedMessageSubmission {
+        submission: MessageSubmission {
+            recipient: MessageRecipient::new("designer"),
+            kind: MessageKind::Send,
+            body: MessageBody::new("verb witness"),
+        },
+        origin: MessageOrigin::External(ConnectionClass::Owner),
+        stamped_at: TimestampNanos::new(1),
+    });
+    let inbox = MessageRequest::InboxQuery(InboxQuery {
+        recipient: MessageRecipient::new("designer"),
+    });
+
+    assert_eq!(submission.signal_verb(), SemaVerb::Assert);
+    assert_eq!(stamped.signal_verb(), SemaVerb::Assert);
+    assert_eq!(inbox.signal_verb(), SemaVerb::Match);
 }
 
 #[test]

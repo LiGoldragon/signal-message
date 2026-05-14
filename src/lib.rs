@@ -13,7 +13,7 @@
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_core::signal_channel;
+use signal_core::{SemaVerb, signal_channel};
 use signal_persona::TimestampNanos;
 use signal_persona_auth::MessageOrigin;
 
@@ -270,6 +270,13 @@ signal_channel! {
 }
 
 impl MessageRequest {
+    pub const fn signal_verb(&self) -> SemaVerb {
+        match self {
+            Self::MessageSubmission(_) | Self::StampedMessageSubmission(_) => SemaVerb::Assert,
+            Self::InboxQuery(_) => SemaVerb::Match,
+        }
+    }
+
     pub fn operation_kind(&self) -> MessageOperationKind {
         match self {
             Self::MessageSubmission(_) => MessageOperationKind::MessageSubmission,
