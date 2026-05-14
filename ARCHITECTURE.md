@@ -2,8 +2,7 @@
 
 The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`MessageRequest` /
-`MessageReply`), wired across two different sockets. Per
-`~/primary/reports/designer/144-prototype-architecture-final-cleanup-after-da36.md` §2.1:
+`MessageReply`), wired across two different sockets:
 
 ```text
 Relation A — Client message
@@ -88,8 +87,6 @@ belongs in typed domain query payloads that the receiver lowers to
 
 ### `MessageKind` — typed body semantics
 
-Per `/127 §4.1 D2` and
-`~/primary/reports/designer/143-prototype-readiness-gap-audit.md` §3:
 `MessageBody(String)` stays freeform; specificity grows via a closed
 `MessageKind` enum carried alongside the body.
 
@@ -104,9 +101,6 @@ The `MessageSubmission` record carries `kind: MessageKind` so router and
 harness can dispatch on the typed kind rather than parsing the freeform body.
 
 ### Skeleton honesty (Unimplemented reply)
-
-Per
-`~/primary/reports/designer/143-prototype-readiness-gap-audit.md` §4.3:
 
 ```text
 MessageUnimplementedReason
@@ -137,9 +131,7 @@ Router accepts `StampedMessageSubmission` on its internal `router.sock` from
 side (Relation A); the message component performs the stamping before
 forwarding on Relation B.
 
-**Timestamp authority** (per
-`~/primary/reports/designer/144-prototype-architecture-final-cleanup-after-da36.md`
-§3.5): two distinct timestamps with distinct minters:
+**Timestamp authority**: two distinct timestamps with distinct minters:
 
 | Field | Minted by | Meaning |
 |---|---|---|
@@ -208,10 +200,4 @@ tests/
 
 ## See also
 
-- `~/primary/reports/designer/72-harmonized-implementation-plan.md`
-  §2.1 — channel inventory
-- `~/primary/reports/designer/73-signal-derive-research.md` —
-  the `signal_channel!` macro decision
 - `signal-core/src/channel.rs` — the macro
-- `~/primary/reports/designer/78-convergence-with-operator-77.md`
-  — convergence on retiring the store-channel boundary

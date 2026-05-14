@@ -35,10 +35,6 @@ is read-shaped and uses `Request::match_records(...)`; the contract-owned
 ## See also
 
 - `ARCHITECTURE.md` — channel role + boundaries
-- `~/primary/reports/designer/72-harmonized-implementation-plan.md`
-  §2.1 — the channel inventory this contract belongs to
-- `~/primary/reports/designer/73-signal-derive-research.md` —
-  the `signal_channel!` macro decision
 - `~/primary/skills/contract-repo.md` — contract-repo discipline
 - `signal-core` — kernel that supplies `Frame`, `Request`,
   `Reply`, `signal_channel!`
