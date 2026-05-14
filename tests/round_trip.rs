@@ -16,6 +16,13 @@ use signal_persona_message::{
     SubmissionRejection, SubmissionRejectionReason,
 };
 
+fn request_frame(request: MessageRequest) -> Frame {
+    Frame::new(FrameBody::Request(Request::operation(
+        request.signal_verb(),
+        request,
+    )))
+}
+
 #[test]
 fn message_submission_request_round_trips_through_length_prefixed_frame() {
     let request = MessageRequest::MessageSubmission(MessageSubmission {
@@ -23,7 +30,7 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
         kind: MessageKind::Send,
         body: MessageBody::new("stack test"),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = request_frame(request.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
@@ -49,7 +56,7 @@ fn stamped_message_submission_request_round_trips_through_length_prefixed_frame(
         origin: MessageOrigin::External(ConnectionClass::Owner),
         stamped_at: TimestampNanos::new(42),
     });
-    let frame = Frame::new(FrameBody::Request(Request::assert(request.clone())));
+    let frame = request_frame(request.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
@@ -69,7 +76,7 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
     let request = MessageRequest::InboxQuery(InboxQuery {
         recipient: MessageRecipient::new("designer"),
     });
-    let frame = Frame::new(FrameBody::Request(Request::match_records(request.clone())));
+    let frame = request_frame(request.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
