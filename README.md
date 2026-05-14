@@ -12,7 +12,7 @@ ARE the messages this channel carries.
 ## Quick reference
 
 ```rust
-use signal_core::{FrameBody, Request};
+use signal_core::FrameBody;
 use signal_persona_message::{
     Frame, MessageBody, MessageKind, MessageRecipient, MessageRequest,
     MessageSubmission,
@@ -23,13 +23,13 @@ let request = MessageRequest::MessageSubmission(MessageSubmission {
     kind: MessageKind::Send,
     body: MessageBody::new("stack test"),
 });
-let frame = Frame::new(FrameBody::Request(Request::assert(request)));
+let frame = Frame::new(FrameBody::Request(request.into_signal_request()));
 let bytes = frame.encode_length_prefixed()?;
 // send bytes on message.sock; persona-message-daemon stamps before router.sock
 ```
 
 Submissions are write-shaped and use the `Assert` root. `InboxQuery`
-is read-shaped and uses `Request::match_records(...)`; the contract-owned
+is read-shaped and uses `Match`; the contract-owned
 `MessageRequest::signal_verb()` method is the witness for this mapping.
 
 ## See also
