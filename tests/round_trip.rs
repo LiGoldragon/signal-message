@@ -5,7 +5,7 @@
 //! "blunt test names" convention.
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
-use signal_core::{FrameBody, Request, SemaVerb};
+use signal_core::{FrameBody, Request, SignalVerb};
 use signal_persona::TimestampNanos;
 use signal_persona_auth::{ConnectionClass, MessageOrigin};
 use signal_persona_message::{
@@ -17,10 +17,7 @@ use signal_persona_message::{
 };
 
 fn request_frame(request: MessageRequest) -> Frame {
-    Frame::new(FrameBody::Request(Request::operation(
-        request.signal_verb(),
-        request,
-    )))
+    Frame::new(FrameBody::Request(request.into_signal_request()))
 }
 
 #[test]
@@ -37,8 +34,8 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
 
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SemaVerb::Assert);
-            assert_eq!(request.signal_verb(), SemaVerb::Assert);
+            assert_eq!(verb, SignalVerb::Assert);
+            assert_eq!(request.signal_verb(), SignalVerb::Assert);
             assert_eq!(payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
@@ -63,8 +60,8 @@ fn stamped_message_submission_request_round_trips_through_length_prefixed_frame(
 
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SemaVerb::Assert);
-            assert_eq!(request.signal_verb(), SemaVerb::Assert);
+            assert_eq!(verb, SignalVerb::Assert);
+            assert_eq!(request.signal_verb(), SignalVerb::Assert);
             assert_eq!(payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
@@ -83,8 +80,8 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
 
     match decoded.into_body() {
         FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SemaVerb::Match);
-            assert_eq!(request.signal_verb(), SemaVerb::Match);
+            assert_eq!(verb, SignalVerb::Match);
+            assert_eq!(request.signal_verb(), SignalVerb::Match);
             assert_eq!(payload, request);
         }
         other => panic!("expected Match request, got {other:?}"),
@@ -254,9 +251,9 @@ fn message_request_variants_declare_expected_signal_root_verbs() {
         recipient: MessageRecipient::new("designer"),
     });
 
-    assert_eq!(submission.signal_verb(), SemaVerb::Assert);
-    assert_eq!(stamped.signal_verb(), SemaVerb::Assert);
-    assert_eq!(inbox.signal_verb(), SemaVerb::Match);
+    assert_eq!(submission.signal_verb(), SignalVerb::Assert);
+    assert_eq!(stamped.signal_verb(), SignalVerb::Assert);
+    assert_eq!(inbox.signal_verb(), SignalVerb::Match);
 }
 
 #[test]

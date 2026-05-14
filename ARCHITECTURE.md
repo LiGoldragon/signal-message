@@ -69,10 +69,10 @@ No `Unknown` variant; no string-tagged dispatch.
 
 ### Signal root verbs
 
-Every `MessageRequest` variant declares its root verb through
-`MessageRequest::signal_verb()`. The method currently returns
-`signal_core::SemaVerb`; this crate keeps that spelling until the
-`signal-core` breaking pass lands `SignalVerb`.
+Every `MessageRequest` variant declares its root verb in the
+`signal_channel!` declaration. `signal-core` generates
+`MessageRequest::signal_verb()` and `MessageRequest::into_signal_request()`
+from that declaration.
 
 ```text
 MessageSubmission        -> Assert
@@ -80,10 +80,11 @@ StampedMessageSubmission -> Assert
 InboxQuery               -> Match
 ```
 
-`InboxQuery` is read-shaped. It is wrapped with `Request::match_records(...)`,
-not `Request::assert(...)`. Query algebra such as projection or aggregation
-belongs in typed domain query payloads that the receiver lowers to
-`sema-engine`, not in the Signal frame root.
+`InboxQuery` is read-shaped. It lowers to the `Match` root through
+`MessageRequest::into_signal_request()`, not an arbitrary Assert
+constructor. Query algebra such as projection or aggregation belongs in typed
+domain query payloads that the receiver lowers to `sema-engine`, not in the
+Signal frame root.
 
 ### `MessageKind` — typed body semantics
 

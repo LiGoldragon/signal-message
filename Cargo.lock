@@ -247,7 +247,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 [[package]]
 name = "signal-core"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/signal-core.git#9f4e20b4917aa1655004b3701ecbf5bce0eac071"
+source = "git+https://github.com/LiGoldragon/signal-core.git#aa7a0d93ca8f516557c2be789f8556a7aec66da7"
 dependencies = [
  "nota-codec",
  "rkyv",
@@ -257,11 +257,12 @@ dependencies = [
 [[package]]
 name = "signal-persona"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/signal-persona.git#44e1435bbe236751fc8a61ac081d526fe5938392"
+source = "git+https://github.com/LiGoldragon/signal-persona.git#ffcd36f965dd566763cc36b2db60dac9b1c7443a"
 dependencies = [
  "nota-codec",
  "rkyv",
  "signal-core",
+ "signal-persona-auth",
 ]
 
 [[package]]
