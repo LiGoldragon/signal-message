@@ -6,8 +6,8 @@
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
 use signal_core::{
-    AcceptedOutcome, ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Operation, Reply,
-    Request, SessionEpoch, SignalVerb, SubReply,
+    ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
+    SignalVerb, SubReply,
 };
 use signal_persona::TimestampNanos;
 use signal_persona_auth::{ConnectionClass, MessageOrigin};
@@ -37,13 +37,10 @@ fn request_frame(request: MessageRequest) -> Frame {
 fn reply_frame(reply: MessageReply) -> Frame {
     Frame::new(FrameBody::Reply {
         exchange: exchange(),
-        reply: Reply::completed(
-            NonEmpty::single(SubReply::Ok {
-                verb: SignalVerb::Assert,
-                payload: reply,
-            }),
-            AcceptedOutcome::Committed,
-        ),
+        reply: Reply::completed(NonEmpty::single(SubReply::Ok {
+            verb: SignalVerb::Assert,
+            payload: reply,
+        })),
     })
 }
 
@@ -205,22 +202,22 @@ fn inbox_listing_round_trips_through_length_prefixed_frame() {
 }
 
 #[test]
-fn from_impl_lifts_message_submission_into_request() {
+fn payload_constructor_lifts_message_submission_into_request() {
     let payload = MessageSubmission {
         recipient: MessageRecipient::new("designer"),
         kind: MessageKind::Send,
         body: MessageBody::new("via from"),
     };
-    let request: MessageRequest = payload.clone().into();
+    let request = MessageRequest::MessageSubmission(payload.clone());
     assert_eq!(request, MessageRequest::MessageSubmission(payload));
 }
 
 #[test]
-fn from_impl_lifts_submission_acceptance_into_reply() {
+fn payload_constructor_lifts_submission_acceptance_into_reply() {
     let acceptance = SubmissionAcceptance {
         message_slot: MessageSlot::new(7),
     };
-    let reply: MessageReply = acceptance.clone().into();
+    let reply = MessageReply::SubmissionAccepted(acceptance.clone());
     assert_eq!(reply, MessageReply::SubmissionAccepted(acceptance));
 }
 
