@@ -12,18 +12,28 @@ ARE the messages this channel carries.
 ## Quick reference
 
 ```rust
-use signal_core::FrameBody;
+use signal_core::{
+    ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
+};
 use signal_persona_message::{
-    Frame, MessageBody, MessageKind, MessageRecipient, MessageRequest,
-    MessageSubmission,
+    Frame, FrameBody, MessageBody, MessageKind, MessageRecipient,
+    MessageRequest, MessageSubmission,
 };
 
+let exchange = ExchangeIdentifier::new(
+    SessionEpoch::new(1),
+    ExchangeLane::Connector,
+    LaneSequence::first(),
+);
 let request = MessageRequest::MessageSubmission(MessageSubmission {
     recipient: MessageRecipient::new("designer"),
     kind: MessageKind::Send,
     body: MessageBody::new("stack test"),
 });
-let frame = Frame::new(FrameBody::Request(request.into_signal_request()));
+let frame = Frame::new(FrameBody::Request {
+    exchange,
+    request: request.into_request(),
+});
 let bytes = frame.encode_length_prefixed()?;
 // send bytes on message.sock; persona-message-daemon stamps before router.sock
 ```

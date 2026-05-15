@@ -71,7 +71,7 @@ No `Unknown` variant; no string-tagged dispatch.
 
 Every `MessageRequest` variant declares its root verb in the
 `signal_channel!` declaration. `signal-core` generates
-`MessageRequest::signal_verb()` and `MessageRequest::into_signal_request()`
+`MessageRequest::signal_verb()` and `MessageRequest::into_request()`
 from that declaration.
 
 ```text
@@ -81,7 +81,7 @@ InboxQuery               -> Match
 ```
 
 `InboxQuery` is read-shaped. It lowers to the `Match` root through
-`MessageRequest::into_signal_request()`, not an arbitrary Assert
+`MessageRequest::into_request()`, not an arbitrary Assert
 constructor. Query algebra such as projection or aggregation belongs in typed
 domain query payloads that the receiver lowers to `sema-engine`, not in the
 Signal frame root.
