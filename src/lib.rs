@@ -256,18 +256,26 @@ pub enum ResourceKind {
 // ─── Channel declaration ───────────────────────────────────
 
 signal_channel! {
-    request MessageRequest {
-        Assert MessageSubmission(MessageSubmission),
-        Assert StampedMessageSubmission(StampedMessageSubmission),
-        Match InboxQuery(InboxQuery),
-    }
-    reply MessageReply {
-        SubmissionAccepted(SubmissionAcceptance),
-        SubmissionRejected(SubmissionRejection),
-        InboxListing(InboxListing),
-        MessageRequestUnimplemented(MessageRequestUnimplemented),
+    channel MessageChannel {
+        request MessageRequest {
+            Assert MessageSubmission(MessageSubmission),
+            Assert StampedMessageSubmission(StampedMessageSubmission),
+            Match InboxQuery(InboxQuery),
+        }
+        reply MessageReply {
+            SubmissionAccepted(SubmissionAcceptance),
+            SubmissionRejected(SubmissionRejection),
+            InboxListing(InboxListing),
+            MessageRequestUnimplemented(MessageRequestUnimplemented),
+        }
     }
 }
+
+pub type Frame = MessageChannelFrame;
+pub type FrameBody = MessageChannelFrameBody;
+pub type ChannelRequest = MessageChannelChannelRequest;
+pub type ChannelReply = MessageChannelChannelReply;
+pub type MessageRequestBuilder = MessageChannelRequestBuilder;
 
 impl MessageRequest {
     pub fn operation_kind(&self) -> MessageOperationKind {

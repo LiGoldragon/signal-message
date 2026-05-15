@@ -5,19 +5,59 @@
 //! "blunt test names" convention.
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
-use signal_core::{FrameBody, Request, SignalVerb};
+use signal_core::{
+    AcceptedOutcome, ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Operation, Reply,
+    Request, SessionEpoch, SignalVerb, SubReply,
+};
 use signal_persona::TimestampNanos;
 use signal_persona_auth::{ConnectionClass, MessageOrigin};
 use signal_persona_message::{
-    DependencyKind, Frame, InboxEntry, InboxListing, InboxQuery, MessageBody, MessageKind,
-    MessageOperationKind, MessageRecipient, MessageReply, MessageRequest,
+    DependencyKind, Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, MessageBody,
+    MessageKind, MessageOperationKind, MessageRecipient, MessageReply, MessageRequest,
     MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
     MessageUnimplementedReason, ResourceKind, StampedMessageSubmission, SubmissionAcceptance,
     SubmissionRejection, SubmissionRejectionReason,
 };
 
+fn exchange() -> ExchangeIdentifier {
+    ExchangeIdentifier::new(
+        SessionEpoch::new(1),
+        ExchangeLane::Connector,
+        LaneSequence::first(),
+    )
+}
+
 fn request_frame(request: MessageRequest) -> Frame {
-    Frame::new(FrameBody::Request(request.into_signal_request()))
+    Frame::new(FrameBody::Request {
+        exchange: exchange(),
+        request: request.into_request(),
+    })
+}
+
+fn reply_frame(reply: MessageReply) -> Frame {
+    Frame::new(FrameBody::Reply {
+        exchange: exchange(),
+        reply: Reply::completed(
+            NonEmpty::single(SubReply::Ok {
+                verb: SignalVerb::Assert,
+                payload: reply,
+            }),
+            AcceptedOutcome::Committed,
+        ),
+    })
+}
+
+fn decode_single_reply(frame: Frame) -> MessageReply {
+    match frame.into_body() {
+        FrameBody::Reply { reply, .. } => match reply {
+            Reply::Accepted { per_operation, .. } => match per_operation.into_head() {
+                SubReply::Ok { payload, .. } => payload,
+                other => panic!("expected accepted reply payload, got {other:?}"),
+            },
+            other => panic!("expected accepted reply, got {other:?}"),
+        },
+        other => panic!("expected reply frame, got {other:?}"),
+    }
 }
 
 #[test]
@@ -33,10 +73,14 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SignalVerb::Assert);
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            let operation = decoded_request.operations().head();
+            assert_eq!(operation.verb, SignalVerb::Assert);
             assert_eq!(request.signal_verb(), SignalVerb::Assert);
-            assert_eq!(payload, request);
+            assert_eq!(operation.payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
     }
@@ -59,10 +103,14 @@ fn stamped_message_submission_request_round_trips_through_length_prefixed_frame(
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SignalVerb::Assert);
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            let operation = decoded_request.operations().head();
+            assert_eq!(operation.verb, SignalVerb::Assert);
             assert_eq!(request.signal_verb(), SignalVerb::Assert);
-            assert_eq!(payload, request);
+            assert_eq!(operation.payload, request);
         }
         other => panic!("expected Assert request, got {other:?}"),
     }
@@ -79,10 +127,14 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
     match decoded.into_body() {
-        FrameBody::Request(Request::Operation { verb, payload }) => {
-            assert_eq!(verb, SignalVerb::Match);
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            let operation = decoded_request.operations().head();
+            assert_eq!(operation.verb, SignalVerb::Match);
             assert_eq!(request.signal_verb(), SignalVerb::Match);
-            assert_eq!(payload, request);
+            assert_eq!(operation.payload, request);
         }
         other => panic!("expected Match request, got {other:?}"),
     }
@@ -93,19 +145,12 @@ fn submission_accepted_reply_round_trips() {
     let reply = MessageReply::SubmissionAccepted(SubmissionAcceptance {
         message_slot: MessageSlot::new(1024),
     });
-    let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
-        reply.clone(),
-    )));
+    let frame = reply_frame(reply.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
-    match decoded.into_body() {
-        FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
-            assert_eq!(decoded_reply, reply);
-        }
-        other => panic!("expected reply, got {other:?}"),
-    }
+    assert_eq!(decode_single_reply(decoded), reply);
 }
 
 #[test]
@@ -113,19 +158,12 @@ fn submission_rejected_reply_round_trips_with_typed_reason() {
     let reply = MessageReply::SubmissionRejected(SubmissionRejection {
         reason: SubmissionRejectionReason::RecipientNotFound,
     });
-    let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
-        reply.clone(),
-    )));
+    let frame = reply_frame(reply.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
-    match decoded.into_body() {
-        FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
-            assert_eq!(decoded_reply, reply);
-        }
-        other => panic!("expected SubmissionRejected reply, got {other:?}"),
-    }
+    assert_eq!(decode_single_reply(decoded), reply);
 }
 
 #[test]
@@ -134,19 +172,12 @@ fn unimplemented_reply_round_trips_with_typed_reason() {
         operation: MessageOperationKind::StampedMessageSubmission,
         reason: MessageUnimplementedReason::ResourceUnavailable(ResourceKind::PeerCredentials),
     });
-    let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
-        reply.clone(),
-    )));
+    let frame = reply_frame(reply.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
-    match decoded.into_body() {
-        FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
-            assert_eq!(decoded_reply, reply);
-        }
-        other => panic!("expected MessageRequestUnimplemented reply, got {other:?}"),
-    }
+    assert_eq!(decode_single_reply(decoded), reply);
 }
 
 #[test]
@@ -165,19 +196,12 @@ fn inbox_listing_round_trips_through_length_prefixed_frame() {
             },
         ],
     });
-    let frame = Frame::new(FrameBody::Reply(signal_core::Reply::operation(
-        reply.clone(),
-    )));
+    let frame = reply_frame(reply.clone());
 
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
 
-    match decoded.into_body() {
-        FrameBody::Reply(signal_core::Reply::Operation(decoded_reply)) => {
-            assert_eq!(decoded_reply, reply);
-        }
-        other => panic!("expected InboxListing reply, got {other:?}"),
-    }
+    assert_eq!(decode_single_reply(decoded), reply);
 }
 
 #[test]
