@@ -9,12 +9,12 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, SubReply,
 };
-use signal_persona::TimestampNanos;
-use signal_persona_auth::{ConnectionClass, MessageOrigin};
+use signal_persona::{SocketMode, TimestampNanos, WirePath};
+use signal_persona_auth::{ConnectionClass, MessageOrigin, OwnerIdentity, UnixUserId};
 use signal_persona_message::{
     DependencyKind, Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, MessageBody,
-    MessageKind, MessageOperationKind, MessageRecipient, MessageReply, MessageRequest,
-    MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
+    MessageDaemonConfiguration, MessageKind, MessageOperationKind, MessageRecipient, MessageReply,
+    MessageRequest, MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
     MessageUnimplementedReason, ResourceKind, StampedMessageSubmission, SubmissionAcceptance,
     SubmissionRejection, SubmissionRejectionReason,
 };
@@ -346,6 +346,44 @@ fn submission_accepted_reply_round_trips_through_nota_text() {
 
     assert_eq!(recovered, reply);
     assert_eq!(text, "(SubmissionAcceptance 7)");
+}
+
+#[test]
+fn message_daemon_configuration_round_trips_through_nota_text() {
+    let configuration = MessageDaemonConfiguration {
+        message_socket_path: WirePath::new("/run/persona/X/message.sock"),
+        message_socket_mode: SocketMode::new(0o660),
+        supervision_socket_path: WirePath::new("/run/persona/X/message-supervision.sock"),
+        supervision_socket_mode: SocketMode::new(0o600),
+        router_socket_path: WirePath::new("/run/persona/X/router.sock"),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+    };
+
+    let mut encoder = Encoder::new();
+    configuration.encode(&mut encoder).expect("encode configuration");
+    let text = encoder.into_string();
+    let mut decoder = Decoder::new(&text);
+    let recovered = MessageDaemonConfiguration::decode(&mut decoder).expect("decode configuration");
+
+    assert_eq!(recovered, configuration);
+}
+
+#[test]
+fn message_daemon_configuration_round_trips_through_rkyv() {
+    use nota_config::ConfigurationRecord;
+
+    let configuration = MessageDaemonConfiguration {
+        message_socket_path: WirePath::new("/run/persona/X/message.sock"),
+        message_socket_mode: SocketMode::new(0o660),
+        supervision_socket_path: WirePath::new("/run/persona/X/message-supervision.sock"),
+        supervision_socket_mode: SocketMode::new(0o600),
+        router_socket_path: WirePath::new("/run/persona/X/router.sock"),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+    };
+
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&configuration).expect("archive");
+    let recovered = MessageDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
+    assert_eq!(recovered, configuration);
 }
 
 #[test]

@@ -14,6 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 nota-codec          = { git = "https://github.com/LiGoldragon/nota-codec.git", branch = "main" }
+nota-config         = { git = "https://github.com/LiGoldragon/nota-config.git", branch = "main" }
 signal-core         = { git = "https://github.com/LiGoldragon/signal-core.git" }
 signal-persona      = { git = "https://github.com/LiGoldragon/signal-persona.git" }
 signal-persona-auth = { git = "https://github.com/LiGoldragon/signal-persona-auth.git" }

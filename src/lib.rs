@@ -14,8 +14,8 @@
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
-use signal_persona::TimestampNanos;
-use signal_persona_auth::MessageOrigin;
+use signal_persona::{SocketMode, TimestampNanos, WirePath};
+use signal_persona_auth::{MessageOrigin, OwnerIdentity};
 
 // ─── Payloads ──────────────────────────────────────────────
 
@@ -286,3 +286,38 @@ impl MessageRequest {
         }
     }
 }
+
+// ─── Daemon configuration ──────────────────────────────────
+//
+// Typed startup configuration for `persona-message-daemon`, per
+// `reports/designer/183-typed-configuration-input-pattern.md`.
+// The manager writes one of these (NOTA or rkyv) to a state-dir
+// path and passes that path as argv. The daemon decodes through
+// `nota_config::ConfigurationSource::from_argv()?.decode()?` and
+// runs with the resulting record. No environment variables on
+// the production launch path.
+
+/// Startup configuration for `persona-message-daemon`.
+///
+/// Replaces the previous `PERSONA_SOCKET`,
+/// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`,
+/// `PERSONA_MESSAGE_ROUTER_SOCKET`, `PERSONA_SPAWN_ENVELOPE`,
+/// etc. environment-variable surface.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+pub struct MessageDaemonConfiguration {
+    /// Where the daemon binds its message-ingress Unix socket.
+    pub message_socket_path: WirePath,
+    /// chmod applied to the message-ingress socket after bind.
+    pub message_socket_mode: SocketMode,
+    /// Where the daemon binds its supervision Unix socket.
+    pub supervision_socket_path: WirePath,
+    /// chmod applied to the supervision socket after bind.
+    pub supervision_socket_mode: SocketMode,
+    /// The router socket this daemon forwards stamped submissions to.
+    pub router_socket_path: WirePath,
+    /// The engine owner identity stamped onto submissions when the
+    /// peer credential matches.
+    pub owner_identity: OwnerIdentity,
+}
+
+nota_config::impl_rkyv_configuration!(MessageDaemonConfiguration);
