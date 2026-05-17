@@ -10,13 +10,16 @@ use signal_core::{
     SignalVerb, SubReply,
 };
 use signal_persona::{SocketMode, TimestampNanos, WirePath};
-use signal_persona_auth::{ConnectionClass, MessageOrigin, OwnerIdentity, UnixUserId};
+use signal_persona_auth::{
+    ComponentInstanceName, ComponentName, ConnectionClass, InternalComponentInstanceOrigin,
+    MessageOrigin, OwnerIdentity, UnixUserId,
+};
 use signal_persona_message::{
-    DependencyKind, Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, MessageBody,
-    MessageDaemonConfiguration, MessageKind, MessageOperationKind, MessageRecipient, MessageReply,
-    MessageRequest, MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
-    MessageUnimplementedReason, ResourceKind, StampedMessageSubmission, SubmissionAcceptance,
-    SubmissionRejection, SubmissionRejectionReason,
+    ComponentMessageIngress, DependencyKind, Frame, FrameBody, InboxEntry, InboxListing,
+    InboxQuery, MessageBody, MessageDaemonConfiguration, MessageKind, MessageOperationKind,
+    MessageRecipient, MessageReply, MessageRequest, MessageRequestUnimplemented, MessageSender,
+    MessageSlot, MessageSubmission, MessageUnimplementedReason, ResourceKind,
+    StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -356,11 +359,21 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
         supervision_socket_path: WirePath::new("/run/persona/X/message-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),
+        component_ingresses: vec![ComponentMessageIngress {
+            origin: InternalComponentInstanceOrigin::new(
+                ComponentName::Harness,
+                ComponentInstanceName::new("initiator"),
+            ),
+            socket_path: WirePath::new("/run/persona/X/message-ingress/initiator.sock"),
+            socket_mode: SocketMode::new(0o600),
+        }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
     };
 
     let mut encoder = Encoder::new();
-    configuration.encode(&mut encoder).expect("encode configuration");
+    configuration
+        .encode(&mut encoder)
+        .expect("encode configuration");
     let text = encoder.into_string();
     let mut decoder = Decoder::new(&text);
     let recovered = MessageDaemonConfiguration::decode(&mut decoder).expect("decode configuration");
@@ -378,6 +391,14 @@ fn message_daemon_configuration_round_trips_through_rkyv() {
         supervision_socket_path: WirePath::new("/run/persona/X/message-supervision.sock"),
         supervision_socket_mode: SocketMode::new(0o600),
         router_socket_path: WirePath::new("/run/persona/X/router.sock"),
+        component_ingresses: vec![ComponentMessageIngress {
+            origin: InternalComponentInstanceOrigin::new(
+                ComponentName::Harness,
+                ComponentInstanceName::new("reviewer"),
+            ),
+            socket_path: WirePath::new("/run/persona/X/message-ingress/reviewer.sock"),
+            socket_mode: SocketMode::new(0o600),
+        }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
     };
 

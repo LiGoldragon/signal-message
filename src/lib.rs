@@ -15,7 +15,7 @@ use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord,
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona::{SocketMode, TimestampNanos, WirePath};
-use signal_persona_auth::{MessageOrigin, OwnerIdentity};
+use signal_persona_auth::{InternalComponentInstanceOrigin, MessageOrigin, OwnerIdentity};
 
 // ─── Payloads ──────────────────────────────────────────────
 
@@ -116,6 +116,19 @@ pub struct StampedMessageSubmission {
     pub submission: MessageSubmission,
     pub origin: MessageOrigin,
     pub stamped_at: TimestampNanos,
+}
+
+/// Manager-created ingress endpoint for one local component instance.
+///
+/// A component connecting through this private socket is stamped with
+/// the configured internal component-instance origin. The message text
+/// remains sender-free; infrastructure mints the sender from the socket
+/// relation.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+pub struct ComponentMessageIngress {
+    pub origin: InternalComponentInstanceOrigin,
+    pub socket_path: WirePath,
+    pub socket_mode: SocketMode,
 }
 
 /// Reply to an accepted message submission. The router has committed
@@ -315,6 +328,8 @@ pub struct MessageDaemonConfiguration {
     pub supervision_socket_mode: SocketMode,
     /// The router socket this daemon forwards stamped submissions to.
     pub router_socket_path: WirePath,
+    /// Manager-created local component ingress endpoints.
+    pub component_ingresses: Vec<ComponentMessageIngress>,
     /// The engine owner identity stamped onto submissions when the
     /// peer credential matches.
     pub owner_identity: OwnerIdentity,
