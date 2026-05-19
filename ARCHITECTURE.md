@@ -4,6 +4,32 @@ The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`MessageRequest` /
 `MessageReply`), wired across two different sockets:
 
+## MUST IMPLEMENT — signal architecture migration
+
+This contract is migrating to contract-local verbs per
+`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
+and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+Drop the SignalVerb prefixes. The contract-local public verbs are
+`Submit` (for `MessageSubmission` — payload becomes `Message`, since
+the crate namespace already supplies "message"; this also retires the
+existing `MessageSubmission` payload-type name per the
+verb-form-not-noun-form rule), `Deliver` (router-side ingress —
+payload `StampedMessage` rather than `StampedMessageSubmission`), and
+`Query` (for `InboxQuery`, payload names the inbox shape). The cross-
+contract reuse pattern applies: `Submit` here means "submit a message
+for routing" while `Submit` in `signal-persona-mind` means "submit a
+thought to the graph" — both legitimate per the contract-locality
+principle. Move the verb-to-Sema lowering (`Submit` → `Assert` event
+plus `Mutate` delivery state, etc.) into `persona-message-daemon`.
+
+References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
+`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+**Note to remover:** when the refactor lands, remove this section and
+add a `## Migration history — contract-local verbs (2026-05-XX)`
+paragraph noting the shape change.
+
 ```text
 Relation A — Message ingress
   endpoint:   message CLI or component client  →  persona-message (receiver)
