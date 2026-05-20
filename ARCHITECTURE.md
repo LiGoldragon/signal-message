@@ -4,30 +4,54 @@ The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`MessageRequest` /
 `MessageReply`), wired across two different sockets:
 
-## MUST IMPLEMENT — signal architecture migration
+## MUST IMPLEMENT — three-layer migration
 
-This contract is migrating to contract-local verbs per
-`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
-and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+This contract is migrating to the three-layer model affirmed
+2026-05-20 per
+`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
 
-Drop the SignalVerb prefixes. The contract-local public verbs are
+**Layer 1 — Contract Operations on the wire (this crate).** Drop the
+SignalVerb wrappers entirely. The contract-local public verbs are
 `Submit` (for `MessageSubmission` — payload becomes `Message`, since
-the crate namespace already supplies "message"; this also retires the
-existing `MessageSubmission` payload-type name per the
-verb-form-not-noun-form rule), `Deliver` (router-side ingress —
-payload `StampedMessage` rather than `StampedMessageSubmission`), and
-`Query` (for `InboxQuery`, payload names the inbox shape). The cross-
-contract reuse pattern applies: `Submit` here means "submit a message
-for routing" while `Submit` in `signal-persona-mind` means "submit a
-thought to the graph" — both legitimate per the contract-locality
-principle. Move the verb-to-Sema lowering (`Submit` → `Assert` event
-plus `Mutate` delivery state, etc.) into `persona-message-daemon`.
+the crate namespace already supplies "message"), `Deliver` (router-
+side ingress — payload `StampedMessage` rather than
+`StampedMessageSubmission`), and `Query` (for `InboxQuery`, payload
+names the inbox shape). The cross-contract reuse pattern applies:
+`Submit` here means "submit a message for routing" while `Submit` in
+`signal-persona-mind` means "submit a thought to the graph" — both
+legitimate per the contract-locality principle.
 
-References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
-`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+**Mandatory `Tap`/`Untap` for persona components.** Persona-message
+is a persona component, so its observable surface is standardized.
+Add a mandatory `observable { … }` block; the macro injects
+`Tap(ObserverFilter)` / `Untap(MessageObserverSubscriptionToken)`
+verbs.
+
+**Layer 2 — Component Commands (persona-message daemon).** The
+message daemon owns its typed Command enum (e.g.
+`MessageCommand::RecordSubmission`,
+`MessageCommand::StampOrigin`,
+`MessageCommand::ReadInbox`) plus a `CommandExecutor`. Lowering from
+contract operation (`Submit`/`Deliver`/`Query`) to commands happens
+in the daemon, not in this contract.
+
+**Layer 3 — Sema classification (signal-sema).** Each Component
+Command projects to a payloadless `SemaOperation` class via
+`ToSemaOperation`. The daemon emits the class label at observation
+publish time.
+
+**Frame layer.** The dependency on `signal-core` shifts to
+`signal-frame`.
+
+References:
+- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+- `primary/reports/designer/248-three-layer-changes-for-operators.md`
+- `primary/skills/component-triad.md` §"Verbs come in three layers"
+- `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
 
 **Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — contract-local verbs (2026-05-XX)`
+add a `## Migration history — three-layer model (2026-05-XX)`
 paragraph noting the shape change.
 
 ```text
@@ -103,24 +127,25 @@ MessageRequest              MessageReply
 
 No `Unknown` variant; no string-tagged dispatch.
 
-### Signal root verbs
+### Sema-class projections (Layer 3)
 
-Every `MessageRequest` variant declares its root verb in the
-`signal_channel!` declaration. `signal-core` generates
-`MessageRequest::signal_verb()` and `MessageRequest::into_request()`
-from that declaration.
+Each contract-local operation's daemon-side Component Command
+projects to a payloadless Sema class via `ToSemaOperation`:
 
 ```text
-MessageSubmission        -> Assert
-StampedMessageSubmission -> Assert
-InboxQuery               -> Match
+Submit                   -> Assert    (records new submission)
+Deliver                  -> Assert    (records stamped submission to router)
+Query (Inbox)            -> Match     (reads inbox)
+Tap (mandatory)          -> Subscribe (opens observer stream)
+Untap (mandatory)        -> Retract   (closes observer stream)
 ```
 
-`InboxQuery` is read-shaped. It lowers to the `Match` root through
-`MessageRequest::into_request()`, not an arbitrary Assert
-constructor. Query algebra such as projection or aggregation belongs in typed
-domain query payloads that the receiver lowers to `sema-engine`, not in the
-Signal frame root.
+`Query` is read-shaped. The daemon lowers it into Component
+Commands that include a `Match`-shaped read plan; the Sema class
+label is the daemon-side projection, not encoded into the wire
+frame. Query algebra such as projection or aggregation belongs in
+typed domain query payloads that the receiver lowers to its
+`CommandExecutor`, not in the wire envelope.
 
 ### `MessageKind` — typed body semantics
 
@@ -190,7 +215,7 @@ state. Router does not adopt the ingress timestamp as durable truth.
 
 ## Versioning
 
-`signal_core::Frame` carries the protocol version; this
+`signal_frame::Frame` carries the protocol version; this
 contract inherits the kernel's version-skew guard.
 Schema-level changes here (adding/removing variants) are
 breaking and require a coordinated upgrade of
@@ -203,17 +228,14 @@ breaking and require a coordinated upgrade of
 (Send designer "hi")
 
 ;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { body: Request(Operation { verb: Assert,
-;;                                   payload: MessageSubmission(MessageSubmission {
-;;                                       recipient: MessageRecipient::new("designer"),
-;;                                       body: MessageBody::new("hi"),
-;;                                   }) }) }
+;; Frame { body: Request(MessageSubmission { recipient: MessageRecipient::new("designer"), body: MessageBody::new("hi") }) }
+;; — the wire form carries the contract-local verb only; the daemon-
+;; side Component Command will project to Sema Assert at observation
+;; publish time.
 
-;; inbox reads use the Match root
-;; Frame { body: Request(Operation { verb: Match,
-;;                                   payload: InboxQuery(InboxQuery {
-;;                                       recipient: MessageRecipient::new("designer"),
-;;                                   }) }) }
+;; inbox reads carry the contract-local Query operation
+;; Frame { body: Request(InboxQuery { recipient: MessageRecipient::new("designer") }) }
+;; — the daemon-side Component Command projects to Sema Match.
 ```
 
 ## Round trips
@@ -221,7 +243,7 @@ breaking and require a coordinated upgrade of
 Each variant of `MessageRequest` and `MessageReply` has a frame round-trip
 test in `tests/round_trip.rs`. Representative NOTA text witnesses cover
 `MessageSubmission` and `SubmissionAcceptance`; root channel enum text codecs
-come from `signal_core::signal_channel!`.
+come from `signal_frame::signal_channel!`.
 
 Architectural-truth tests (per
 `~/primary/skills/architectural-truth-tests.md`) fire when:
@@ -247,4 +269,5 @@ tests/
 
 ## See also
 
-- `signal-core/src/channel.rs` — the macro
+- `signal-frame/macros/src/validate.rs` — the macro
+- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
