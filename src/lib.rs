@@ -242,8 +242,8 @@ impl NotaDecode for MessageUnimplementedReason {
                 decoder.expect_record_end()?;
                 Ok(Self::ResourceUnavailable(resource))
             }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "MessageUnimplementedReason",
+            other => Err(nota_codec::Error::UnknownVariant {
+                enum_name: "MessageUnimplementedReason",
                 got: other.to_string(),
             }),
         }
