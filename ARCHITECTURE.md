@@ -225,7 +225,7 @@ breaking and require a coordinated upgrade of
 
 ```nota
 ;; the CLI invocation
-(Send designer "hi")
+(Send designer [hi])
 
 ;; produces this wire frame (length-prefix omitted for clarity)
 ;; Frame { body: Request(MessageSubmission { recipient: MessageRecipient::new("designer"), body: MessageBody::new("hi") }) }
