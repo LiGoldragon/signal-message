@@ -309,7 +309,7 @@ fn message_submission_request_round_trips_through_nota_text() {
     let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
 
     assert_eq!(recovered, request);
-    assert_eq!(text, "(MessageSubmission (designer Send \"stack test\"))");
+    assert_eq!(text, "(MessageSubmission (designer Send [stack test]))");
 }
 
 #[test]
