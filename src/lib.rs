@@ -15,7 +15,7 @@ use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord,
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona::{SocketMode, TimestampNanos, WirePath};
-use signal_persona_auth::{InternalComponentInstanceOrigin, MessageOrigin, OwnerIdentity};
+use signal_persona_origin::{InternalComponentInstanceOrigin, MessageOrigin, OwnerIdentity};
 
 // ─── Payloads ──────────────────────────────────────────────
 

@@ -10,16 +10,16 @@ use signal_core::{
     SignalVerb, SubReply,
 };
 use signal_persona::{SocketMode, TimestampNanos, WirePath};
-use signal_persona_auth::{
-    ComponentInstanceName, ComponentName, ConnectionClass, InternalComponentInstanceOrigin,
-    MessageOrigin, OwnerIdentity, UnixUserId,
-};
 use signal_persona_message::{
     ComponentMessageIngress, DependencyKind, Frame, FrameBody, InboxEntry, InboxListing,
     InboxQuery, MessageBody, MessageDaemonConfiguration, MessageKind, MessageOperationKind,
     MessageRecipient, MessageReply, MessageRequest, MessageRequestUnimplemented, MessageSender,
     MessageSlot, MessageSubmission, MessageUnimplementedReason, ResourceKind,
     StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
+};
+use signal_persona_origin::{
+    ComponentInstanceName, ComponentName, ConnectionClass, InternalComponentInstanceOrigin,
+    MessageOrigin, OwnerIdentity, UnixUserId,
 };
 
 fn exchange() -> ExchangeIdentifier {

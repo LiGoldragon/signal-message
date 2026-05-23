@@ -106,7 +106,7 @@ This contract imports no domain records from
 `SubmissionAcceptance`, `StampedMessageSubmission`, etc.) are defined
 in this crate because they are the channel's *interface vocabulary*,
 not records that travel beyond this channel. `MessageOrigin` (embedded
-in `StampedMessageSubmission`) is imported from `signal-persona-auth`.
+in `StampedMessageSubmission`) is imported from `signal-persona-origin`.
 
 (If a payload turns out to belong to another relation, make or update the
 relation-specific `signal-persona-*` contract for that relation. Do not lift
@@ -192,7 +192,7 @@ The bridge record:
 ```text
 StampedMessageSubmission
   | submission:  MessageSubmission
-  | origin:      MessageOrigin              (from signal-persona-auth)
+  | origin:      MessageOrigin              (from signal-persona-origin)
   | stamped_at:  TimestampNanos             (ingress observation time;
                                              minted by persona-message)
 ```
