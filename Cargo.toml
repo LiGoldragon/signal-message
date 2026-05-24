@@ -1,15 +1,15 @@
 [package]
-name         = "signal-persona-message"
+name         = "signal-message"
 version      = "0.1.0"
 edition      = "2024"
 rust-version = "1.85"
 license      = "MIT OR Apache-2.0"
-repository   = "https://github.com/LiGoldragon/signal-persona-message"
-description  = "Signal contract for Persona message ingress relations."
+repository   = "https://github.com/LiGoldragon/signal-message"
+description  = "Signal contract for Message ingress relations."
 publish      = false
 
 [lib]
-name = "signal_persona_message"
+name = "signal_message"
 path = "src/lib.rs"
 
 [dependencies]

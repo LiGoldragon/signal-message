@@ -1,5 +1,5 @@
 //! Architectural-truth tests for the
-//! `signal-persona-message` channel.
+//! `signal-message` channel.
 //!
 //! Each test names exactly what shape it pins down; per the
 //! "blunt test names" convention.
@@ -9,14 +9,14 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, SubReply,
 };
-use signal_persona::{SocketMode, TimestampNanos, WirePath};
-use signal_persona_message::{
+use signal_message::{
     ComponentMessageIngress, DependencyKind, Frame, FrameBody, InboxEntry, InboxListing,
     InboxQuery, MessageBody, MessageDaemonConfiguration, MessageKind, MessageOperationKind,
     MessageRecipient, MessageReply, MessageRequest, MessageRequestUnimplemented, MessageSender,
     MessageSlot, MessageSubmission, MessageUnimplementedReason, ResourceKind,
     StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
 };
+use signal_persona::{SocketMode, TimestampNanos, WirePath};
 use signal_persona_origin::{
     ComponentInstanceName, ComponentName, ConnectionClass, InternalComponentInstanceOrigin,
     MessageOrigin, OwnerIdentity, UnixUserId,

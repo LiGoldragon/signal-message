@@ -1,4 +1,4 @@
-# ARCHITECTURE — signal-persona-message
+# ARCHITECTURE — signal-message
 
 The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`MessageRequest` /
@@ -22,13 +22,13 @@ names the inbox shape). The cross-contract reuse pattern applies:
 `signal-persona-mind` means "submit a thought to the graph" — both
 legitimate per the contract-locality principle.
 
-**Mandatory `Tap`/`Untap` for persona components.** Persona-message
+**Mandatory `Tap`/`Untap` for persona components.** Message
 is a persona component, so its observable surface is standardized.
 Add a mandatory `observable { … }` block; the macro injects
 `Tap(ObserverFilter)` / `Untap(MessageObserverSubscriptionToken)`
 verbs.
 
-**Layer 2 — Component Commands (persona-message daemon).** The
+**Layer 2 — Component Commands (message daemon).** The
 message daemon owns its typed Command enum (e.g.
 `MessageCommand::RecordSubmission`,
 `MessageCommand::StampOrigin`,
@@ -56,7 +56,7 @@ paragraph noting the shape change.
 
 ```text
 Relation A — Message ingress
-  endpoint:   message CLI or component client  →  persona-message (receiver)
+  endpoint:   message CLI or component client  →  message (receiver)
   sockets:    message.sock for owner/external clients
               message-ingress/<instance>.sock for manager-created
               component-instance clients
@@ -64,7 +64,7 @@ Relation A — Message ingress
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | InboxListing | MessageRequestUnimplemented
 
 Relation B — Router ingress
-  endpoint:   persona-message (sender)         →  persona-router (receiver)
+  endpoint:   message (sender)         →  persona-router (receiver)
   socket:     router.sock (mode 0600)
   legal payloads (request):   StampedMessageSubmission
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
@@ -76,7 +76,7 @@ ingress:
 1. `message` CLI constructs a `MessageRequest::MessageSubmission(...)`,
    encodes it as a length-prefixed Signal frame, writes to
    `message.sock`.
-2. `persona-message` decodes the frame, mints
+2. `message` decodes the frame, mints
    `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED on the
    peer connection, packages the submission + origin + ingress
    timestamp as `StampedMessageSubmission`, and forwards it to
@@ -89,7 +89,7 @@ ingress:
 When a supervised component uses its manager-created ingress socket, the
 payload shape is still `MessageSubmission`; the accepted socket chooses
 the origin. The component client does **not** send its own sender or origin
-in-band. `persona-message` stamps
+in-band. `message` stamps
 `MessageOrigin::InternalComponentInstance(...)` from the
 `ComponentMessageIngress` entry configured by the engine manager.
 
@@ -176,13 +176,13 @@ valid request variant has no built behavior yet.
 
 ### Origin bridging — `StampedMessageSubmission`
 
-`persona-message` owns the local provenance bridge. It accepts a plain
+`message` owns the local provenance bridge. It accepts a plain
 `MessageSubmission`, derives the origin from the accepted ingress, and
 forwards a stamped record to router.
 
 Ingress classes:
 
-| Ingress | Origin minted by `persona-message` | Who configures it |
+| Ingress | Origin minted by `message` | Who configures it |
 |---|---|---|
 | `message.sock` | `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED / owner context | `MessageDaemonConfiguration.message_socket_path` |
 | `message-ingress/<instance>.sock` | `MessageOrigin::InternalComponentInstance(InternalComponentInstanceOrigin)` | `MessageDaemonConfiguration.component_ingresses` written by the engine manager |
@@ -194,11 +194,11 @@ StampedMessageSubmission
   | submission:  MessageSubmission
   | origin:      MessageOrigin              (from signal-persona-origin)
   | stamped_at:  TimestampNanos             (ingress observation time;
-                                             minted by persona-message)
+                                             minted by message)
 ```
 
 Router accepts `StampedMessageSubmission` on its internal `router.sock` from
-`persona-message`. Plain `MessageSubmission` is the shape on the CLI
+`message`. Plain `MessageSubmission` is the shape on the CLI
 or component-client side (Relation A); the message component performs the
 stamping before forwarding on Relation B. Origin fields are never accepted
 from a Relation A caller.
@@ -207,7 +207,7 @@ from a Relation A caller.
 
 | Field | Minted by | Meaning |
 |---|---|---|
-| `StampedMessageSubmission.stamped_at` | `persona-message` | Ingress observation time. Audit/provenance. |
+| `StampedMessageSubmission.stamped_at` | `message` | Ingress observation time. Audit/provenance. |
 | Router commit time (on the message slot when persisted) | `persona-router` | Durable commit time. Source of truth for "when did this land in the engine." |
 
 Ingress timestamp is provenance; router commit time is durable message
@@ -219,7 +219,7 @@ state. Router does not adopt the ingress timestamp as durable truth.
 contract inherits the kernel's version-skew guard.
 Schema-level changes here (adding/removing variants) are
 breaking and require a coordinated upgrade of
-`persona-message` + `persona-router`.
+`message` + `persona-router`.
 
 ## Examples
 

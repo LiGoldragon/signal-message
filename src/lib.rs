@@ -1,9 +1,9 @@
-//! Signal contract — Persona message ingress relations.
+//! Signal contract — Message ingress relations.
 //!
 //! Read this file as the public interface of the messaging
 //! channel. One root family serves two relations:
-//! `message` CLI to `persona-message-daemon`, and
-//! `persona-message-daemon` to `persona-router`. The
+//! `message` CLI to `message-daemon`, and
+//! `message-daemon` to `persona-router`. The
 //! variants name the legal payloads; relation-specific
 //! legality is documented in `ARCHITECTURE.md`.
 //!
@@ -302,7 +302,7 @@ impl MessageRequest {
 
 // ─── Daemon configuration ──────────────────────────────────
 //
-// Typed startup configuration for `persona-message-daemon`, per
+// Typed startup configuration for `message-daemon`, per
 // `reports/designer/183-typed-configuration-input-pattern.md`.
 // The manager writes one of these (NOTA or rkyv) to a state-dir
 // path and passes that path as argv. The daemon decodes through
@@ -310,7 +310,7 @@ impl MessageRequest {
 // runs with the resulting record. No environment variables on
 // the production launch path.
 
-/// Startup configuration for `persona-message-daemon`.
+/// Startup configuration for `message-daemon`.
 ///
 /// Replaces the previous `PERSONA_SOCKET`,
 /// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`,

@@ -1,8 +1,8 @@
-# signal-persona-message
+# signal-message
 
-The Signal contract for Persona message ingress. It carries the client-message
-relation (`message` CLI to `persona-message-daemon`) and the router-ingress
-relation (`persona-message-daemon` to `persona-router`) in one root family.
+The Signal contract for Message ingress. It carries the client-message
+relation (`message` CLI to `message-daemon`) and the router-ingress
+relation (`message-daemon` to `persona-router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
 (`MessageRequest`, `MessageReply`) declared via the
@@ -15,7 +15,7 @@ ARE the messages this channel carries.
 use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
-use signal_persona_message::{
+use signal_message::{
     Frame, FrameBody, MessageBody, MessageKind, MessageRecipient,
     MessageRequest, MessageSubmission,
 };
@@ -35,7 +35,7 @@ let frame = Frame::new(FrameBody::Request {
     request: request.into_request(),
 });
 let bytes = frame.encode_length_prefixed()?;
-// send bytes on message.sock; persona-message-daemon stamps before router.sock
+// send bytes on message.sock; message-daemon stamps before router.sock
 ```
 
 Submissions are write-shaped and use the `Assert` root. `InboxQuery`

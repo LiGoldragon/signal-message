@@ -1,5 +1,5 @@
 {
-  description = "signal-persona-message — Signal contract for Persona message ingress";
+  description = "signal-message — Signal contract for Message ingress";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -48,7 +48,7 @@
           });
         };
         devShells.default = pkgs.mkShell {
-          name = "signal-persona-message";
+          name = "signal-message";
           packages = [ pkgs.jujutsu pkgs.pkg-config toolchain ];
         };
       });
