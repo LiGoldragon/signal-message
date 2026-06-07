@@ -23,11 +23,11 @@ If your change adds a new request or reply variant, edit
 
 ## What this repo owns
 
-- The closed `MessageRequest` enum (the messages
-  `message-cli` sends to `persona-router`).
+- The closed `MessageRequest` enum (`Submit`, `SubmitStamped`,
+  `QueryInbox`) for message ingress and router ingress.
 - The closed `MessageReply` enum (the responses the router
   sends back).
-- The `Frame` type alias = `signal_core::Frame<MessageRequest, MessageReply>`.
+- The `Frame` type emitted by `signal_frame::signal_channel!`.
 - The wire-form round-trip tests in `tests/round_trip.rs`.
 
 ## What this repo does not own

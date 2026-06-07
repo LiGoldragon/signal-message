@@ -5,9 +5,9 @@
 //! "blunt test names" convention.
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
-use signal_core::{
+use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
-    SignalVerb, SubReply,
+    SignalOperationHeads, SubReply,
 };
 use signal_message::{
     ComponentMessageIngress, DependencyKind, Frame, FrameBody, InboxEntry, InboxListing,
@@ -40,10 +40,7 @@ fn request_frame(request: MessageRequest) -> Frame {
 fn reply_frame(reply: MessageReply) -> Frame {
     Frame::new(FrameBody::Reply {
         exchange: exchange(),
-        reply: Reply::completed(NonEmpty::single(SubReply::Ok {
-            verb: SignalVerb::Assert,
-            payload: reply,
-        })),
+        reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
     })
 }
 
@@ -51,10 +48,10 @@ fn decode_single_reply(frame: Frame) -> MessageReply {
     match frame.into_body() {
         FrameBody::Reply { reply, .. } => match reply {
             Reply::Accepted { per_operation, .. } => match per_operation.into_head() {
-                SubReply::Ok { payload, .. } => payload,
+                SubReply::Ok(payload) => payload,
                 other => panic!("expected accepted reply payload, got {other:?}"),
             },
-            other => panic!("expected accepted reply, got {other:?}"),
+            Reply::Rejected { reason } => panic!("unexpected rejected reply: {reason:?}"),
         },
         other => panic!("expected reply frame, got {other:?}"),
     }
@@ -62,7 +59,7 @@ fn decode_single_reply(frame: Frame) -> MessageReply {
 
 #[test]
 fn message_submission_request_round_trips_through_length_prefixed_frame() {
-    let request = MessageRequest::MessageSubmission(MessageSubmission {
+    let request = MessageRequest::Submit(MessageSubmission {
         recipient: MessageRecipient::new("designer"),
         kind: MessageKind::Send,
         body: MessageBody::new("stack test"),
@@ -77,18 +74,15 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
             request: decoded_request,
             ..
         } => {
-            let operation = decoded_request.operations().head();
-            assert_eq!(operation.verb, SignalVerb::Assert);
-            assert_eq!(request.signal_verb(), SignalVerb::Assert);
-            assert_eq!(operation.payload, request);
+            assert_eq!(decoded_request.payloads().head(), &request);
         }
-        other => panic!("expected Assert request, got {other:?}"),
+        other => panic!("expected Submit request, got {other:?}"),
     }
 }
 
 #[test]
 fn stamped_message_submission_request_round_trips_through_length_prefixed_frame() {
-    let request = MessageRequest::StampedMessageSubmission(StampedMessageSubmission {
+    let request = MessageRequest::SubmitStamped(StampedMessageSubmission {
         submission: MessageSubmission {
             recipient: MessageRecipient::new("designer"),
             kind: MessageKind::Send,
@@ -107,18 +101,15 @@ fn stamped_message_submission_request_round_trips_through_length_prefixed_frame(
             request: decoded_request,
             ..
         } => {
-            let operation = decoded_request.operations().head();
-            assert_eq!(operation.verb, SignalVerb::Assert);
-            assert_eq!(request.signal_verb(), SignalVerb::Assert);
-            assert_eq!(operation.payload, request);
+            assert_eq!(decoded_request.payloads().head(), &request);
         }
-        other => panic!("expected Assert request, got {other:?}"),
+        other => panic!("expected SubmitStamped request, got {other:?}"),
     }
 }
 
 #[test]
 fn inbox_query_round_trips_through_length_prefixed_frame() {
-    let request = MessageRequest::InboxQuery(InboxQuery {
+    let request = MessageRequest::QueryInbox(InboxQuery {
         recipient: MessageRecipient::new("designer"),
     });
     let frame = request_frame(request.clone());
@@ -131,12 +122,9 @@ fn inbox_query_round_trips_through_length_prefixed_frame() {
             request: decoded_request,
             ..
         } => {
-            let operation = decoded_request.operations().head();
-            assert_eq!(operation.verb, SignalVerb::Match);
-            assert_eq!(request.signal_verb(), SignalVerb::Match);
-            assert_eq!(operation.payload, request);
+            assert_eq!(decoded_request.payloads().head(), &request);
         }
-        other => panic!("expected Match request, got {other:?}"),
+        other => panic!("expected QueryInbox request, got {other:?}"),
     }
 }
 
@@ -169,7 +157,7 @@ fn submission_rejected_reply_round_trips_with_typed_reason() {
 #[test]
 fn unimplemented_reply_round_trips_with_typed_reason() {
     let reply = MessageReply::MessageRequestUnimplemented(MessageRequestUnimplemented {
-        operation: MessageOperationKind::StampedMessageSubmission,
+        operation: MessageOperationKind::SubmitStamped,
         reason: MessageUnimplementedReason::ResourceUnavailable(ResourceKind::PeerCredentials),
     });
     let frame = reply_frame(reply.clone());
@@ -211,8 +199,8 @@ fn payload_constructor_lifts_message_submission_into_request() {
         kind: MessageKind::Send,
         body: MessageBody::new("via from"),
     };
-    let request = MessageRequest::MessageSubmission(payload.clone());
-    assert_eq!(request, MessageRequest::MessageSubmission(payload));
+    let request = MessageRequest::Submit(payload.clone());
+    assert_eq!(request, MessageRequest::Submit(payload));
 }
 
 #[test]
@@ -226,12 +214,12 @@ fn payload_constructor_lifts_submission_acceptance_into_reply() {
 
 #[test]
 fn message_request_exposes_contract_owned_operation_kind() {
-    let submission = MessageRequest::MessageSubmission(MessageSubmission {
+    let submission = MessageRequest::Submit(MessageSubmission {
         recipient: MessageRecipient::new("designer"),
         kind: MessageKind::Send,
         body: MessageBody::new("kind witness"),
     });
-    let stamped = MessageRequest::StampedMessageSubmission(StampedMessageSubmission {
+    let stamped = MessageRequest::SubmitStamped(StampedMessageSubmission {
         submission: MessageSubmission {
             recipient: MessageRecipient::new("designer"),
             kind: MessageKind::Send,
@@ -240,63 +228,46 @@ fn message_request_exposes_contract_owned_operation_kind() {
         origin: MessageOrigin::External(ConnectionClass::Owner),
         stamped_at: TimestampNanos::new(1),
     });
-    let inbox = MessageRequest::InboxQuery(InboxQuery {
+    let inbox = MessageRequest::QueryInbox(InboxQuery {
         recipient: MessageRecipient::new("designer"),
     });
 
     assert_eq!(
         submission.operation_kind(),
-        MessageOperationKind::MessageSubmission
+        MessageOperationKind::Submit
     );
     assert_eq!(
         stamped.operation_kind(),
-        MessageOperationKind::StampedMessageSubmission
+        MessageOperationKind::SubmitStamped
     );
-    assert_eq!(inbox.operation_kind(), MessageOperationKind::InboxQuery);
+    assert_eq!(inbox.operation_kind(), MessageOperationKind::QueryInbox);
 }
 
 #[test]
-fn message_request_variants_declare_expected_signal_root_verbs() {
-    let submission = MessageRequest::MessageSubmission(MessageSubmission {
-        recipient: MessageRecipient::new("designer"),
-        kind: MessageKind::Send,
-        body: MessageBody::new("verb witness"),
-    });
-    let stamped = MessageRequest::StampedMessageSubmission(StampedMessageSubmission {
-        submission: MessageSubmission {
-            recipient: MessageRecipient::new("designer"),
-            kind: MessageKind::Send,
-            body: MessageBody::new("verb witness"),
-        },
-        origin: MessageOrigin::External(ConnectionClass::Owner),
-        stamped_at: TimestampNanos::new(1),
-    });
-    let inbox = MessageRequest::InboxQuery(InboxQuery {
-        recipient: MessageRecipient::new("designer"),
-    });
-
-    assert_eq!(submission.signal_verb(), SignalVerb::Assert);
-    assert_eq!(stamped.signal_verb(), SignalVerb::Assert);
-    assert_eq!(inbox.signal_verb(), SignalVerb::Match);
+fn message_request_variants_declare_contract_local_operation_heads() {
+    assert_eq!(
+        <MessageRequest as SignalOperationHeads>::HEADS,
+        &["Submit", "SubmitStamped", "QueryInbox"]
+    );
 }
 
 #[test]
 fn message_operation_kind_round_trips_through_nota_text() {
     let mut encoder = Encoder::new();
-    MessageOperationKind::MessageSubmission
+    MessageOperationKind::Submit
         .encode(&mut encoder)
         .expect("encode operation kind");
     let text = encoder.into_string();
     let mut decoder = Decoder::new(&text);
     let recovered = MessageOperationKind::decode(&mut decoder).expect("decode operation kind");
 
-    assert_eq!(recovered, MessageOperationKind::MessageSubmission);
-    assert_eq!(text, "MessageSubmission");
+    assert_eq!(recovered, MessageOperationKind::Submit);
+    assert_eq!(text, "Submit");
 }
 
 #[test]
 fn message_submission_request_round_trips_through_nota_text() {
-    let request = MessageRequest::MessageSubmission(MessageSubmission {
+    let request = MessageRequest::Submit(MessageSubmission {
         recipient: MessageRecipient::new("designer"),
         kind: MessageKind::Send,
         body: MessageBody::new("stack test"),
@@ -309,12 +280,12 @@ fn message_submission_request_round_trips_through_nota_text() {
     let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
 
     assert_eq!(recovered, request);
-    assert_eq!(text, "(MessageSubmission (designer Send [stack test]))");
+    assert_eq!(text, "(Submit (designer Send [stack test]))");
 }
 
 #[test]
 fn stamped_message_submission_request_round_trips_through_nota_text() {
-    let request = MessageRequest::StampedMessageSubmission(StampedMessageSubmission {
+    let request = MessageRequest::SubmitStamped(StampedMessageSubmission {
         submission: MessageSubmission {
             recipient: MessageRecipient::new("designer"),
             kind: MessageKind::Send,
@@ -331,7 +302,7 @@ fn stamped_message_submission_request_round_trips_through_nota_text() {
     let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
 
     assert_eq!(recovered, request);
-    assert!(text.contains("StampedMessageSubmission"));
+    assert!(text.contains("SubmitStamped"));
     assert!(text.contains("Owner"));
 }
 
@@ -417,7 +388,7 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
 
     for reason in reasons {
         let reply = MessageReply::MessageRequestUnimplemented(MessageRequestUnimplemented {
-            operation: MessageOperationKind::InboxQuery,
+            operation: MessageOperationKind::QueryInbox,
             reason,
         });
         let mut encoder = Encoder::new();

@@ -13,7 +13,7 @@
 
 use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_core::signal_channel;
+use signal_frame::signal_channel;
 use signal_persona::{SocketMode, TimestampNanos, WirePath};
 use signal_persona_origin::{InternalComponentInstanceOrigin, MessageOrigin, OwnerIdentity};
 
@@ -150,9 +150,9 @@ pub struct InboxQuery {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
 )]
 pub enum MessageOperationKind {
-    MessageSubmission,
-    StampedMessageSubmission,
-    InboxQuery,
+    Submit,
+    SubmitStamped,
+    QueryInbox,
 }
 
 /// Reply to an `Inbox` query — the messages currently
@@ -269,46 +269,39 @@ pub enum ResourceKind {
 // ─── Channel declaration ───────────────────────────────────
 
 signal_channel! {
-    channel MessageChannel {
-        request MessageRequest {
-            Assert MessageSubmission(MessageSubmission),
-            Assert StampedMessageSubmission(StampedMessageSubmission),
-            Match InboxQuery(InboxQuery),
-        }
-        reply MessageReply {
-            SubmissionAccepted(SubmissionAcceptance),
-            SubmissionRejected(SubmissionRejection),
-            InboxListing(InboxListing),
-            MessageRequestUnimplemented(MessageRequestUnimplemented),
-        }
+    channel Message {
+        operation Submit(MessageSubmission),
+        operation SubmitStamped(StampedMessageSubmission),
+        operation QueryInbox(InboxQuery),
+    }
+    reply MessageReply {
+        SubmissionAccepted(SubmissionAcceptance),
+        SubmissionRejected(SubmissionRejection),
+        InboxListing(InboxListing),
+        MessageRequestUnimplemented(MessageRequestUnimplemented),
     }
 }
 
-pub type Frame = MessageChannelFrame;
-pub type FrameBody = MessageChannelFrameBody;
-pub type ChannelRequest = MessageChannelChannelRequest;
-pub type ChannelReply = MessageChannelChannelReply;
-pub type MessageRequestBuilder = MessageChannelRequestBuilder;
+pub type MessageRequest = Operation;
+pub type ChannelRequest = signal_frame::Request<MessageRequest>;
+pub type ChannelReply = signal_frame::Reply<MessageReply>;
+pub type MessageRequestBuilder = RequestBuilder;
 
 impl MessageRequest {
     pub fn operation_kind(&self) -> MessageOperationKind {
         match self {
-            Self::MessageSubmission(_) => MessageOperationKind::MessageSubmission,
-            Self::StampedMessageSubmission(_) => MessageOperationKind::StampedMessageSubmission,
-            Self::InboxQuery(_) => MessageOperationKind::InboxQuery,
+            Self::Submit(_) => MessageOperationKind::Submit,
+            Self::SubmitStamped(_) => MessageOperationKind::SubmitStamped,
+            Self::QueryInbox(_) => MessageOperationKind::QueryInbox,
         }
     }
 }
 
 // ─── Daemon configuration ──────────────────────────────────
 //
-// Typed startup configuration for `message-daemon`, per
-// `reports/designer/183-typed-configuration-input-pattern.md`.
-// The manager writes one of these (NOTA or rkyv) to a state-dir
-// path and passes that path as argv. The daemon decodes through
-// `nota_config::ConfigurationSource::from_argv()?.decode()?` and
-// runs with the resulting record. No environment variables on
-// the production launch path.
+// Typed startup configuration for `message-daemon`. Human tooling may author
+// this record through NOTA, but the live daemon consumes a signal-encoded rkyv
+// archive path. The daemon does not parse NOTA.
 
 /// Startup configuration for `message-daemon`.
 ///

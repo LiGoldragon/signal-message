@@ -27,9 +27,10 @@ the typed vocabulary the two relations speak.
 
 The MessageChannel carries:
 
-- **Requests:** `MessageSubmission` (a client submits a message for routing),
-  `StampedMessageSubmission` (the daemon forwards a provenance-stamped
-  submission to the router), `InboxQuery` (read inbox state).
+- **Requests:** `Submit(MessageSubmission)` (a client submits a message for
+  routing), `SubmitStamped(StampedMessageSubmission)` (the daemon forwards a
+  provenance-stamped submission to the router), `QueryInbox(InboxQuery)` (read
+  inbox state).
 - **Replies:** `SubmissionAccepted`, `SubmissionRejected`, `InboxListing`, and
   `MessageRequestUnimplemented` (skeleton honesty for accepted-but-unimplemented
   shapes).
@@ -57,17 +58,15 @@ Per `primary/skills/contract-repo.md` §"Public contracts use contract-local
 operation verbs":
 
 - Operation roots are domain verbs in verb form: `Submit` (the client submits a
-  message), `Deliver` (router-side ingress), `Query` (inbox read) — not Sema
-  class words. `Submit` here means "submit a message for routing"; the same verb
-  in another contract carries that contract's domain meaning (contract-locality).
+  message), `SubmitStamped` (router-side stamped ingress), `QueryInbox` (inbox
+  read) — not Sema class words. `Submit` here means "submit a message for
+  routing"; the same verb in another contract carries that contract's domain
+  meaning (contract-locality).
 - Reply success variants are past-tense / outcome-named matching the operation;
   rejections are typed (`SubmissionRejected`) carrying a closed-enum reason.
-- Payload record names are domain nouns the operation carries (`Message`,
-  `StampedMessage`, inbox shapes), not `Request`, `Data`, or generic containers.
-- The legacy `Assert`/`Match`-tagged request variants still present in
-  `src/lib.rs` are a cleanup-track holdover — Sema class words are forbidden on
-  the public wire (per `primary/skills/contract-repo.md` §"What moved below the
-  public contract"); the migration to bare contract-local verbs is owed.
+- Payload record names are domain nouns the operation carries
+  (`MessageSubmission`, `StampedMessageSubmission`, `InboxQuery`), not `Request`,
+  `Data`, or generic containers.
 
 ## Constraints
 
@@ -86,8 +85,8 @@ operation verbs":
 
 ## Three-layer model
 
-Layer 1 (this crate): contract operations on the wire (`Submit`, `Deliver`,
-`Query`).
+Layer 1 (this crate): contract operations on the wire (`Submit`,
+`SubmitStamped`, `QueryInbox`).
 Layer 2 (daemon): component-local `MessageCommand` enum (e.g. `RecordSubmission`,
 `StampOrigin`, `ReadInbox`) that the daemon executes.
 Layer 3 (observation): payloadless Sema class labels for cross-component

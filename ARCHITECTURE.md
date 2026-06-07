@@ -4,55 +4,30 @@ The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`MessageRequest` /
 `MessageReply`), wired across two different sockets:
 
-## MUST IMPLEMENT — three-layer migration
-
-This contract is migrating to the three-layer model affirmed
-2026-05-20 per
-`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
+## Three-layer model
 
 **Layer 1 — Contract Operations on the wire (this crate).** Drop the
-SignalVerb wrappers entirely. The contract-local public verbs are
-`Submit` (for `MessageSubmission` — payload becomes `Message`, since
-the crate namespace already supplies "message"), `Deliver` (router-
-side ingress — payload `StampedMessage` rather than
-`StampedMessageSubmission`), and `Query` (for `InboxQuery`, payload
-names the inbox shape). The cross-contract reuse pattern applies:
+Sema-shaped wrappers entirely. The contract-local public operations are
+`Submit(MessageSubmission)`, `SubmitStamped(StampedMessageSubmission)`, and
+`QueryInbox(InboxQuery)`. The cross-contract reuse pattern applies:
 `Submit` here means "submit a message for routing" while `Submit` in
 `signal-persona-mind` means "submit a thought to the graph" — both
 legitimate per the contract-locality principle.
-
-**Mandatory `Tap`/`Untap` for persona components.** Message
-is a persona component, so its observable surface is standardized.
-Add a mandatory `observable { … }` block; the macro injects
-`Tap(ObserverFilter)` / `Untap(MessageObserverSubscriptionToken)`
-verbs.
 
 **Layer 2 — Component Commands (message daemon).** The
 message daemon owns its typed Command enum (e.g.
 `MessageCommand::RecordSubmission`,
 `MessageCommand::StampOrigin`,
 `MessageCommand::ReadInbox`) plus a `CommandExecutor`. Lowering from
-contract operation (`Submit`/`Deliver`/`Query`) to commands happens
-in the daemon, not in this contract.
+contract operation (`Submit`/`SubmitStamped`/`QueryInbox`) to commands
+happens in the daemon, not in this contract.
 
 **Layer 3 — Sema classification (signal-sema).** Each Component
 Command projects to a payloadless `SemaOperation` class via
 `ToSemaOperation`. The daemon emits the class label at observation
 publish time.
 
-**Frame layer.** The dependency on `signal-core` shifts to
-`signal-frame`.
-
-References:
-- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-- `primary/reports/designer/248-three-layer-changes-for-operators.md`
-- `primary/skills/component-triad.md` §"Verbs come in three layers"
-- `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
-
-**Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — three-layer model (2026-05-XX)`
-paragraph noting the shape change.
+**Frame layer.** This crate uses `signal-frame`, not `signal-core`.
 
 ```text
 Relation A — Message ingress
@@ -73,7 +48,7 @@ Relation B — Router ingress
 When a user runs `message '(Send designer "hi")'` through the owner
 ingress:
 
-1. `message` CLI constructs a `MessageRequest::MessageSubmission(...)`,
+1. `message` CLI constructs a `MessageRequest::Submit(...)`,
    encodes it as a length-prefixed Signal frame, writes to
    `message.sock`.
 2. `message` decodes the frame, mints
@@ -119,9 +94,9 @@ Closed enums declared via `signal_channel!`:
 
 ```
 MessageRequest              MessageReply
-├─ MessageSubmission         ├─ SubmissionAccepted
-├─ StampedMessageSubmission  ├─ SubmissionRejected { reason }
-└─ InboxQuery                ├─ InboxListing
+├─ Submit                    ├─ SubmissionAccepted
+├─ SubmitStamped             ├─ SubmissionRejected { reason }
+└─ QueryInbox                ├─ InboxListing
                               └─ MessageRequestUnimplemented(MessageUnimplementedReason)
 ```
 
@@ -134,13 +109,11 @@ projects to a payloadless Sema class via `ToSemaOperation`:
 
 ```text
 Submit                   -> Assert    (records new submission)
-Deliver                  -> Assert    (records stamped submission to router)
-Query (Inbox)            -> Match     (reads inbox)
-Tap (mandatory)          -> Subscribe (opens observer stream)
-Untap (mandatory)        -> Retract   (closes observer stream)
+SubmitStamped            -> Assert    (records stamped submission to router)
+QueryInbox               -> Match     (reads inbox)
 ```
 
-`Query` is read-shaped. The daemon lowers it into Component
+`QueryInbox` is read-shaped. The daemon lowers it into Component
 Commands that include a `Match`-shaped read plan; the Sema class
 label is the daemon-side projection, not encoded into the wire
 frame. Query algebra such as projection or aggregation belongs in
@@ -228,13 +201,13 @@ breaking and require a coordinated upgrade of
 (Send designer [hi])
 
 ;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { body: Request(MessageSubmission { recipient: MessageRecipient::new("designer"), body: MessageBody::new("hi") }) }
+;; Frame { body: Request(Submit(MessageSubmission { recipient: MessageRecipient::new("designer"), body: MessageBody::new("hi") })) }
 ;; — the wire form carries the contract-local verb only; the daemon-
 ;; side Component Command will project to Sema Assert at observation
 ;; publish time.
 
-;; inbox reads carry the contract-local Query operation
-;; Frame { body: Request(InboxQuery { recipient: MessageRecipient::new("designer") }) }
+;; inbox reads carry the contract-local QueryInbox operation
+;; Frame { body: Request(QueryInbox(InboxQuery { recipient: MessageRecipient::new("designer") })) }
 ;; — the daemon-side Component Command projects to Sema Match.
 ```
 
@@ -242,7 +215,7 @@ breaking and require a coordinated upgrade of
 
 Each variant of `MessageRequest` and `MessageReply` has a frame round-trip
 test in `tests/round_trip.rs`. Representative NOTA text witnesses cover
-`MessageSubmission` and `SubmissionAcceptance`; root channel enum text codecs
+`Submit(MessageSubmission)` and `SubmissionAcceptance`; root channel enum text codecs
 come from `signal_frame::signal_channel!`.
 
 Architectural-truth tests (per

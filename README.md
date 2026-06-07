@@ -6,13 +6,13 @@ relation (`message-daemon` to `persona-router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
 (`MessageRequest`, `MessageReply`) declared via the
-`signal_channel!` macro from `signal-core`. The variants
+`signal_channel!` macro from `signal-frame`. The variants
 ARE the messages this channel carries.
 
 ## Quick reference
 
 ```rust
-use signal_core::{
+use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
 use signal_message::{
@@ -25,7 +25,7 @@ let exchange = ExchangeIdentifier::new(
     ExchangeLane::Connector,
     LaneSequence::first(),
 );
-let request = MessageRequest::MessageSubmission(MessageSubmission {
+let request = MessageRequest::Submit(MessageSubmission {
     recipient: MessageRecipient::new("designer"),
     kind: MessageKind::Send,
     body: MessageBody::new("stack test"),
@@ -38,13 +38,13 @@ let bytes = frame.encode_length_prefixed()?;
 // send bytes on message.sock; message-daemon stamps before router.sock
 ```
 
-Submissions are write-shaped and use the `Assert` root. `InboxQuery`
-is read-shaped and uses `Match`; the contract-owned
-`MessageRequest::signal_verb()` method is the witness for this mapping.
+The request operation heads are contract-local: `Submit`,
+`SubmitStamped`, and `QueryInbox`. Sema classification labels such as
+`Assert` and `Match` are daemon-side observation labels, not wire roots.
 
 ## See also
 
 - `ARCHITECTURE.md` — channel role + boundaries
 - `~/primary/skills/contract-repo.md` — contract-repo discipline
-- `signal-core` — kernel that supplies `Frame`, `Request`,
+- `signal-frame` — kernel that supplies `Frame`, `Request`,
   `Reply`, `signal_channel!`
