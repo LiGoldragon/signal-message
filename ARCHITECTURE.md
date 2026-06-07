@@ -11,7 +11,7 @@ Sema-shaped wrappers entirely. The contract-local public operations are
 `Submit(MessageSubmission)`, `SubmitStamped(StampedMessageSubmission)`, and
 `QueryInbox(InboxQuery)`. The cross-contract reuse pattern applies:
 `Submit` here means "submit a message for routing" while `Submit` in
-`signal-persona-mind` means "submit a thought to the graph" — both
+`signal-mind` means "submit a thought to the graph" — both
 legitimate per the contract-locality principle.
 
 **Layer 2 — Component Commands (message daemon).** The
@@ -39,7 +39,7 @@ Relation A — Message ingress
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | InboxListing | MessageRequestUnimplemented
 
 Relation B — Router ingress
-  endpoint:   message (sender)         →  persona-router (receiver)
+  endpoint:   message (sender)         →  router (receiver)
   socket:     router.sock (mode 0600)
   legal payloads (request):   StampedMessageSubmission
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
@@ -56,7 +56,7 @@ ingress:
    peer connection, packages the submission + origin + ingress
    timestamp as `StampedMessageSubmission`, and forwards it to
    `router.sock`.
-3. `persona-router` accepts the stamped submission, persists a
+3. `router` accepts the stamped submission, persists a
    message slot with router-minted commit time, and replies with
    `SubmissionAccepted(slot)` or `SubmissionRejected(reason)`.
 4. The daemon forwards the reply back to the CLI client.
@@ -76,17 +76,17 @@ it does not own a `MessageOrigin` mint). Witnesses enforce both rules.
 
 ## Record source
 
-This contract imports no domain records from
-`signal-persona`; the payloads (`MessageSubmission`,
-`SubmissionAcceptance`, `StampedMessageSubmission`, etc.) are defined
-in this crate because they are the channel's *interface vocabulary*,
-not records that travel beyond this channel. `MessageOrigin` (embedded
-in `StampedMessageSubmission`) is imported from `signal-persona-origin`.
+This contract imports no manager-domain records. The payloads
+(`MessageSubmission`, `SubmissionAcceptance`, `StampedMessageSubmission`,
+etc.) are defined in this crate because they are the channel's *interface
+vocabulary*, not records that travel beyond this channel. `MessageOrigin`
+(embedded in `StampedMessageSubmission`) is imported from
+`signal-persona-origin`.
 
 (If a payload turns out to belong to another relation, make or update the
-relation-specific `signal-persona-*` contract for that relation. Do not lift
-message-channel payloads into `signal-persona`; that crate is the top-level
-engine-manager contract.)
+relation-specific `signal-*` contract for that relation. Do not lift
+message-channel payloads into manager contract crates; engine-management
+crates are not relation buckets.)
 
 ## Messages
 
@@ -181,7 +181,7 @@ from a Relation A caller.
 | Field | Minted by | Meaning |
 |---|---|---|
 | `StampedMessageSubmission.stamped_at` | `message` | Ingress observation time. Audit/provenance. |
-| Router commit time (on the message slot when persisted) | `persona-router` | Durable commit time. Source of truth for "when did this land in the engine." |
+| Router commit time (on the message slot when persisted) | `router` | Durable commit time. Source of truth for "when did this land in the engine." |
 
 Ingress timestamp is provenance; router commit time is durable message
 state. Router does not adopt the ingress timestamp as durable truth.
@@ -192,7 +192,7 @@ state. Router does not adopt the ingress timestamp as durable truth.
 contract inherits the kernel's version-skew guard.
 Schema-level changes here (adding/removing variants) are
 breaking and require a coordinated upgrade of
-`message` + `persona-router`.
+`message` + `router`.
 
 ## Examples
 

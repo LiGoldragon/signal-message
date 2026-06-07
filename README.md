@@ -2,7 +2,7 @@
 
 The Signal contract for Message ingress. It carries the client-message
 relation (`message` CLI to `message-daemon`) and the router-ingress
-relation (`message-daemon` to `persona-router`) in one root family.
+relation (`message-daemon` to `router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
 (`MessageRequest`, `MessageReply`) declared via the

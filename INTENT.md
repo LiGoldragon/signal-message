@@ -3,7 +3,7 @@
 *The wire vocabulary contract for the engine's message-ingress path. Defines the
 typed request/reply channel for the client-message relation (`message` CLI to
 `message-daemon`) and the router-ingress relation (`message-daemon` to
-`persona-router`), carried in one root family.
+`router`), carried in one root family.
 Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance: `primary/skills/repo-intent.md`.*
 
 ## Repo-scope only
@@ -19,7 +19,7 @@ ingress. It carries two named relations sharing one root family
 (`MessageRequest` / `MessageReply`): the client-message relation, where a
 `message` CLI or component client submits a message, and the router-ingress
 relation, where the message daemon forwards a stamped submission to
-`persona-router`. Routing policy, delivery state, channel authority, and the
+`router`. Routing policy, delivery state, channel authority, and the
 ingress daemon's runtime all live elsewhere (`router`, `message`); this crate is
 the typed vocabulary the two relations speak.
 

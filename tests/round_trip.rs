@@ -4,7 +4,8 @@
 //! Each test names exactly what shape it pins down; per the
 //! "blunt test names" convention.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
+use nota_next::{NotaDecode, NotaEncode, NotaSource};
+use signal_engine_management::{SocketMode, TimestampNanos, WirePath};
 use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, SubReply,
@@ -16,10 +17,9 @@ use signal_message::{
     MessageSlot, MessageSubmission, MessageUnimplementedReason, ResourceKind,
     StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
 };
-use signal_persona::{SocketMode, TimestampNanos, WirePath};
 use signal_persona_origin::{
     ComponentInstanceName, ComponentName, ConnectionClass, InternalComponentInstanceOrigin,
-    MessageOrigin, OwnerIdentity, UnixUserId,
+    MessageOrigin, OwnerIdentity, UnixUserIdentifier,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -55,6 +55,16 @@ fn decode_single_reply(frame: Frame) -> MessageReply {
         },
         other => panic!("expected reply frame, got {other:?}"),
     }
+}
+
+fn round_trip_nota<Value>(value: Value, expected: &str)
+where
+    Value: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
+{
+    let text = value.to_nota();
+    assert_eq!(text, expected);
+    let recovered = NotaSource::new(&text).parse::<Value>().expect("decode");
+    assert_eq!(recovered, value);
 }
 
 #[test]
@@ -232,10 +242,7 @@ fn message_request_exposes_contract_owned_operation_kind() {
         recipient: MessageRecipient::new("designer"),
     });
 
-    assert_eq!(
-        submission.operation_kind(),
-        MessageOperationKind::Submit
-    );
+    assert_eq!(submission.operation_kind(), MessageOperationKind::Submit);
     assert_eq!(
         stamped.operation_kind(),
         MessageOperationKind::SubmitStamped
@@ -253,16 +260,7 @@ fn message_request_variants_declare_contract_local_operation_heads() {
 
 #[test]
 fn message_operation_kind_round_trips_through_nota_text() {
-    let mut encoder = Encoder::new();
-    MessageOperationKind::Submit
-        .encode(&mut encoder)
-        .expect("encode operation kind");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = MessageOperationKind::decode(&mut decoder).expect("decode operation kind");
-
-    assert_eq!(recovered, MessageOperationKind::Submit);
-    assert_eq!(text, "Submit");
+    round_trip_nota(MessageOperationKind::Submit, "Submit");
 }
 
 #[test]
@@ -273,14 +271,7 @@ fn message_submission_request_round_trips_through_nota_text() {
         body: MessageBody::new("stack test"),
     });
 
-    let mut encoder = Encoder::new();
-    request.encode(&mut encoder).expect("encode request");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
-
-    assert_eq!(recovered, request);
-    assert_eq!(text, "(Submit (designer Send [stack test]))");
+    round_trip_nota(request, "(Submit ([designer] Send [stack test]))");
 }
 
 #[test]
@@ -295,11 +286,10 @@ fn stamped_message_submission_request_round_trips_through_nota_text() {
         stamped_at: TimestampNanos::new(99),
     });
 
-    let mut encoder = Encoder::new();
-    request.encode(&mut encoder).expect("encode request");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = MessageRequest::decode(&mut decoder).expect("decode request");
+    let text = request.to_nota();
+    let recovered = NotaSource::new(&text)
+        .parse::<MessageRequest>()
+        .expect("decode request");
 
     assert_eq!(recovered, request);
     assert!(text.contains("SubmitStamped"));
@@ -312,14 +302,7 @@ fn submission_accepted_reply_round_trips_through_nota_text() {
         message_slot: MessageSlot::new(7),
     });
 
-    let mut encoder = Encoder::new();
-    reply.encode(&mut encoder).expect("encode reply");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = MessageReply::decode(&mut decoder).expect("decode reply");
-
-    assert_eq!(recovered, reply);
-    assert_eq!(text, "(SubmissionAccepted (7))");
+    round_trip_nota(reply, "(SubmissionAccepted (7))");
 }
 
 #[test]
@@ -338,24 +321,21 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
             socket_path: WirePath::new("/run/persona/X/message-ingress/initiator.sock"),
             socket_mode: SocketMode::new(0o600),
         }],
-        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
-    let mut encoder = Encoder::new();
-    configuration
-        .encode(&mut encoder)
-        .expect("encode configuration");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let recovered = MessageDaemonConfiguration::decode(&mut decoder).expect("decode configuration");
+    let text = configuration.to_nota();
+    let recovered = NotaSource::new(&text)
+        .parse::<MessageDaemonConfiguration>()
+        .expect("decode configuration");
 
     assert_eq!(recovered, configuration);
+    assert!(text.contains("[/run/persona/X/message.sock]"));
+    assert!(text.contains("(Harness [initiator])"));
 }
 
 #[test]
 fn message_daemon_configuration_round_trips_through_rkyv() {
-    use nota_config::ConfigurationRecord;
-
     let configuration = MessageDaemonConfiguration {
         message_socket_path: WirePath::new("/run/persona/X/message.sock"),
         message_socket_mode: SocketMode::new(0o660),
@@ -370,10 +350,10 @@ fn message_daemon_configuration_round_trips_through_rkyv() {
             socket_path: WirePath::new("/run/persona/X/message-ingress/reviewer.sock"),
             socket_mode: SocketMode::new(0o600),
         }],
-        owner_identity: OwnerIdentity::UnixUser(UnixUserId::new(1000)),
+        owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     };
 
-    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&configuration).expect("archive");
+    let bytes = configuration.to_rkyv_bytes().expect("archive");
     let recovered = MessageDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");
     assert_eq!(recovered, configuration);
 }
@@ -391,11 +371,10 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
             operation: MessageOperationKind::QueryInbox,
             reason,
         });
-        let mut encoder = Encoder::new();
-        reply.encode(&mut encoder).expect("encode reply");
-        let text = encoder.into_string();
-        let mut decoder = Decoder::new(&text);
-        let recovered = MessageReply::decode(&mut decoder).expect("decode reply");
+        let text = reply.to_nota();
+        let recovered = NotaSource::new(&text)
+            .parse::<MessageReply>()
+            .expect("decode reply");
         assert_eq!(recovered, reply);
     }
 }

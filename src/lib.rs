@@ -3,7 +3,7 @@
 //! Read this file as the public interface of the messaging
 //! channel. One root family serves two relations:
 //! `message` CLI to `message-daemon`, and
-//! `message-daemon` to `persona-router`. The
+//! `message-daemon` to `router`. The
 //! variants name the legal payloads; relation-specific
 //! legality is documented in `ARCHITECTURE.md`.
 //!
@@ -11,16 +11,25 @@
 //! boundaries; `~/primary/reports/designer/72-harmonized-implementation-plan.md`
 //! §6 for the contract-creation discipline.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaTransparent};
+use nota_next::{NotaDecode, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
+use signal_engine_management::{SocketMode, TimestampNanos, WirePath};
 use signal_frame::signal_channel;
-use signal_persona::{SocketMode, TimestampNanos, WirePath};
 use signal_persona_origin::{InternalComponentInstanceOrigin, MessageOrigin, OwnerIdentity};
 
 // ─── Payloads ──────────────────────────────────────────────
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct MessageRecipient(String);
 
@@ -35,7 +44,16 @@ impl MessageRecipient {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct MessageSender(String);
 
@@ -50,7 +68,16 @@ impl MessageSender {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct MessageBody(String);
 
@@ -68,7 +95,8 @@ impl MessageBody {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaTransparent,
+    NotaEncode,
+    NotaDecode,
     Debug,
     Clone,
     Copy,
@@ -89,7 +117,17 @@ impl MessageSlot {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum MessageKind {
     Send,
@@ -101,7 +139,9 @@ pub enum MessageKind {
 /// accepted socket context, not provided by the caller, per
 /// the "infrastructure mints identity, time, sender" rule
 /// (`ESSENCE.md` §"Infrastructure mints identity").
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct MessageSubmission {
     /// The recipient agent's name.
     pub recipient: MessageRecipient,
@@ -111,7 +151,9 @@ pub struct MessageSubmission {
     pub body: MessageBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct StampedMessageSubmission {
     pub submission: MessageSubmission,
     pub origin: MessageOrigin,
@@ -124,7 +166,9 @@ pub struct StampedMessageSubmission {
 /// the configured internal component-instance origin. The message text
 /// remains sender-free; infrastructure mints the sender from the socket
 /// relation.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ComponentMessageIngress {
     pub origin: InternalComponentInstanceOrigin,
     pub socket_path: WirePath,
@@ -133,7 +177,9 @@ pub struct ComponentMessageIngress {
 
 /// Reply to an accepted message submission. The router has committed
 /// the message through router-owned state and assigned it a durable slot.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct SubmissionAcceptance {
     /// The slot under which the message was persisted.
     pub message_slot: MessageSlot,
@@ -141,13 +187,25 @@ pub struct SubmissionAcceptance {
 
 /// Query the current inbox for a recipient. The reply
 /// carries the messages currently visible to that recipient.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct InboxQuery {
     pub recipient: MessageRecipient,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum MessageOperationKind {
     Submit,
@@ -157,14 +215,18 @@ pub enum MessageOperationKind {
 
 /// Reply to an `Inbox` query — the messages currently
 /// addressed to the recipient, in slot order.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct InboxListing {
     pub messages: Vec<InboxEntry>,
 }
 
 /// One message visible in an inbox. Sender is the
 /// router-resolved sender at submit time.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct InboxEntry {
     pub message_slot: MessageSlot,
     pub sender: MessageSender,
@@ -174,12 +236,16 @@ pub struct InboxEntry {
 /// A rejected submission — the router could not commit the
 /// message. The router carries the typed reason; the caller
 /// can pattern-match on it.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct SubmissionRejection {
     pub reason: SubmissionRejectionReason,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum SubmissionRejectionReason {
     /// The router could not persist the message.
     StoreRejected,
@@ -187,70 +253,26 @@ pub enum SubmissionRejectionReason {
     RecipientNotFound,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct MessageRequestUnimplemented {
     pub operation: MessageOperationKind,
     pub reason: MessageUnimplementedReason,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum MessageUnimplementedReason {
     NotInPrototypeScope,
     DependencyMissing(DependencyKind),
     ResourceUnavailable(ResourceKind),
 }
 
-impl NotaEncode for MessageUnimplementedReason {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::NotInPrototypeScope => {
-                encoder.start_record("NotInPrototypeScope")?;
-                encoder.end_record()
-            }
-            Self::DependencyMissing(dependency) => {
-                encoder.start_record("DependencyMissing")?;
-                dependency.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::ResourceUnavailable(resource) => {
-                encoder.start_record("ResourceUnavailable")?;
-                resource.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for MessageUnimplementedReason {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "NotInPrototypeScope" => {
-                decoder.expect_record_head("NotInPrototypeScope")?;
-                decoder.expect_record_end()?;
-                Ok(Self::NotInPrototypeScope)
-            }
-            "DependencyMissing" => {
-                decoder.expect_record_head("DependencyMissing")?;
-                let dependency = DependencyKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::DependencyMissing(dependency))
-            }
-            "ResourceUnavailable" => {
-                decoder.expect_record_head("ResourceUnavailable")?;
-                let resource = ResourceKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ResourceUnavailable(resource))
-            }
-            other => Err(nota_codec::Error::UnknownVariant {
-                enum_name: "MessageUnimplementedReason",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum DependencyKind {
     Router,
     Mind,
@@ -258,7 +280,9 @@ pub enum DependencyKind {
     Terminal,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum ResourceKind {
     MessageSocket,
     RouterSocket,
@@ -309,7 +333,9 @@ impl MessageRequest {
 /// `PERSONA_SOCKET_MODE`, `PERSONA_SUPERVISION_SOCKET_PATH`,
 /// `PERSONA_MESSAGE_ROUTER_SOCKET`, `PERSONA_SPAWN_ENVELOPE`,
 /// etc. environment-variable surface.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct MessageDaemonConfiguration {
     /// Where the daemon binds its message-ingress Unix socket.
     pub message_socket_path: WirePath,
@@ -328,4 +354,24 @@ pub struct MessageDaemonConfiguration {
     pub owner_identity: OwnerIdentity,
 }
 
-nota_config::impl_rkyv_configuration!(MessageDaemonConfiguration);
+impl MessageDaemonConfiguration {
+    pub fn from_rkyv_bytes(bytes: &[u8]) -> Result<Self, MessageDaemonConfigurationArchiveError> {
+        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes)
+            .map_err(|_| MessageDaemonConfigurationArchiveError::Decode)
+    }
+
+    pub fn to_rkyv_bytes(&self) -> Result<Vec<u8>, MessageDaemonConfigurationArchiveError> {
+        rkyv::to_bytes::<rkyv::rancor::Error>(self)
+            .map(|bytes| bytes.to_vec())
+            .map_err(|_| MessageDaemonConfigurationArchiveError::Encode)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum MessageDaemonConfigurationArchiveError {
+    #[error("failed to encode message daemon configuration archive")]
+    Encode,
+
+    #[error("failed to decode message daemon configuration archive")]
+    Decode,
+}

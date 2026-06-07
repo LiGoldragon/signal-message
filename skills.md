@@ -16,7 +16,7 @@ Before changing code in this repo, read:
   `nix flake check` is the gate
 - this repo's `ARCHITECTURE.md`
 - the consumers' `ARCHITECTURE.md` files
-  (`message/`, `persona-router/`)
+  (`message/`, `router/`)
 
 If your change adds a new request or reply variant, edit
 `src/lib.rs` first, then push, then update the consumers.
@@ -33,10 +33,10 @@ If your change adds a new request or reply variant, edit
 ## What this repo does not own
 
 - The CLI itself — that's `message`.
-- The router — that's `persona-router`.
+- The router — that's `router`.
 - Transport (UDS path, reconnect, timeouts) — those are per
   consumer.
-- Routing / delivery logic — that's `persona-router`'s
+- Routing / delivery logic — that's `router`'s
   internal state machine.
-- Persistence policy — that's owned by `persona-router` and implemented
+- Persistence policy — that's owned by `router` and implemented
   through its own state actor and router-owned Sema layer.
