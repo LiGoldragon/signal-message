@@ -5,9 +5,9 @@ relation (`message` CLI to `message-daemon`) and the router-ingress
 relation (`message-daemon` to `router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
-(`MessageRequest`, `MessageReply`) declared via the
-`signal_channel!` macro from `signal-frame`. The variants
-ARE the messages this channel carries.
+(`Input`, `Output`) generated from `schema/lib.schema` by
+`schema-rust-next`. The variants ARE the messages this channel
+carries.
 
 ## Quick reference
 
@@ -17,7 +17,7 @@ use signal_frame::{
 };
 use signal_message::{
     Frame, FrameBody, MessageBody, MessageKind, MessageRecipient,
-    MessageRequest, MessageSubmission,
+    Input, MessageSubmission,
 };
 
 let exchange = ExchangeIdentifier::new(
@@ -25,10 +25,10 @@ let exchange = ExchangeIdentifier::new(
     ExchangeLane::Connector,
     LaneSequence::first(),
 );
-let request = MessageRequest::Submit(MessageSubmission {
-    recipient: MessageRecipient::new("designer"),
+let request = Input::Submit(MessageSubmission {
+    recipient: MessageRecipient::new(String::from("designer")),
     kind: MessageKind::Send,
-    body: MessageBody::new("stack test"),
+    body: MessageBody::new(String::from("stack test")),
 });
 let frame = Frame::new(FrameBody::Request {
     exchange,
@@ -46,5 +46,5 @@ The request operation heads are contract-local: `Submit`,
 
 - `ARCHITECTURE.md` — channel role + boundaries
 - `~/primary/skills/contract-repo.md` — contract-repo discipline
-- `signal-frame` — kernel that supplies `Frame`, `Request`,
-  `Reply`, `signal_channel!`
+- `signal-frame` — kernel that supplies the request/reply frame envelope
+- `schema/lib.schema` — authored contract vocabulary

@@ -1,0 +1,114 @@
+;; signal-message — ordinary working wire contract for message ingress.
+;;
+;; Wire-only: emits the rkyv + optional NOTA codec and the signal-frame
+;; request/reply envelope. Runtime provenance stamping, socket binding,
+;; router forwarding, and durable state live in the message and router
+;; daemons.
+;;
+;; SELF-CONTAINED VOCABULARY. This schema defines the wire vocabulary locally.
+;; Daemons project these local wire nouns into their internal provenance/runtime
+;; nouns at the boundary.
+
+[(Submit MessageSubmission)
+ (SubmitStamped StampedMessageSubmission)
+ (QueryInbox InboxQuery)]
+[(SubmissionAccepted SubmissionAcceptance)
+ (SubmissionRejected SubmissionRejection)
+ (InboxListing InboxListing)
+ (MessageRequestUnimplemented MessageRequestUnimplemented)]
+{
+  MessageRecipient { value String }
+  MessageSender { value String }
+  MessageBody { value String }
+  MessageSlot { value Integer }
+  TimestampNanos { value Integer }
+  WirePath { value String }
+  SocketMode { value Integer }
+  UnixUserIdentifier { value Integer }
+  SystemPrincipal { value String }
+  EngineIdentifier { value String }
+  HostName { value String }
+  NetworkPeer { value String }
+  ComponentInstanceName { value String }
+
+  MessageKind [Send Inbox]
+
+  MessageSubmission {
+    recipient MessageRecipient
+    kind MessageKind
+    body MessageBody
+  }
+
+  OtherPersonaEngine {
+    engine_identifier EngineIdentifier
+    host HostName
+  }
+  ConnectionClass [
+    Owner
+    (NonOwnerUser UnixUserIdentifier)
+    (System SystemPrincipal)
+    (OtherPersona OtherPersonaEngine)
+    (Network NetworkPeer)
+  ]
+  ComponentName [Mind Message Router Terminal Harness System Introspect Orchestrate Spirit]
+  InternalComponentInstanceOrigin {
+    component ComponentName
+    instance ComponentInstanceName
+  }
+  MessageOrigin [
+    (Internal ComponentName)
+    (InternalComponentInstance InternalComponentInstanceOrigin)
+    (External ConnectionClass)
+  ]
+
+  StampedMessageSubmission {
+    submission MessageSubmission
+    origin MessageOrigin
+    stamped_at TimestampNanos
+  }
+
+  ComponentMessageIngress {
+    origin InternalComponentInstanceOrigin
+    socket_path WirePath
+    socket_mode SocketMode
+  }
+
+  SubmissionAcceptance { message_slot MessageSlot }
+  InboxQuery { recipient MessageRecipient }
+  MessageOperationKind [Submit SubmitStamped QueryInbox]
+  InboxEntry {
+    message_slot MessageSlot
+    sender MessageSender
+    body MessageBody
+  }
+  InboxListing { messages (Vec InboxEntry) }
+  SubmissionRejectionReason [StoreRejected RecipientNotFound]
+  SubmissionRejection { reason SubmissionRejectionReason }
+
+  DependencyKind [Router Mind Harness Terminal]
+  ResourceKind [MessageSocket RouterSocket PeerCredentials Store]
+  MessageUnimplementedReason [
+    NotInPrototypeScope
+    (DependencyMissing DependencyKind)
+    (ResourceUnavailable ResourceKind)
+  ]
+  MessageRequestUnimplemented {
+    operation MessageOperationKind
+    reason MessageUnimplementedReason
+  }
+
+  OwnerIdentity [
+    (UnixUser UnixUserIdentifier)
+    (System SystemPrincipal)
+  ]
+
+  MessageDaemonConfiguration {
+    message_socket_path WirePath
+    message_socket_mode SocketMode
+    supervision_socket_path WirePath
+    supervision_socket_mode SocketMode
+    router_socket_path WirePath
+    component_ingresses (Vec ComponentMessageIngress)
+    owner_identity OwnerIdentity
+  }
+}

@@ -1,8 +1,8 @@
 # ARCHITECTURE — signal-message
 
 The Signal contract for the engine's message-ingress path. It owns
-**two named relations sharing one root family** (`MessageRequest` /
-`MessageReply`), wired across two different sockets:
+**two named relations sharing one root family** (`Input` / `Output`),
+wired across two different sockets:
 
 ## Three-layer model
 
@@ -45,11 +45,11 @@ Relation B — Router ingress
   legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
 ```
 
-When a user runs `message '(Send designer "hi")'` through the owner
+When a user runs `message "(Send designer [hi])"` through the owner
 ingress:
 
-1. `message` CLI constructs a `MessageRequest::Submit(...)`,
-   encodes it as a length-prefixed Signal frame, writes to
+1. `message` CLI constructs an `Input::Submit(...)`, encodes it as a
+   length-prefixed Signal frame, writes to
    `message.sock`.
 2. `message` decodes the frame, mints
    `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED on the
@@ -80,8 +80,10 @@ This contract imports no manager-domain records. The payloads
 (`MessageSubmission`, `SubmissionAcceptance`, `StampedMessageSubmission`,
 etc.) are defined in this crate because they are the channel's *interface
 vocabulary*, not records that travel beyond this channel. `MessageOrigin`
-(embedded in `StampedMessageSubmission`) is imported from
-`signal-persona-origin`.
+(embedded in `StampedMessageSubmission`) is defined locally in the schema
+until a shared origin vocabulary exists as a schema-derived contract. Daemons
+project these local wire nouns into any internal provenance/runtime nouns at
+their boundary.
 
 (If a payload turns out to belong to another relation, make or update the
 relation-specific `signal-*` contract for that relation. Do not lift
@@ -90,10 +92,10 @@ crates are not relation buckets.)
 
 ## Messages
 
-Closed enums declared via `signal_channel!`:
+Closed enums generated from `schema/lib.schema`:
 
 ```
-MessageRequest              MessageReply
+Input                       Output
 ├─ Submit                    ├─ SubmissionAccepted
 ├─ SubmitStamped             ├─ SubmissionRejected { reason }
 └─ QueryInbox                ├─ InboxListing
@@ -165,7 +167,7 @@ The bridge record:
 ```text
 StampedMessageSubmission
   | submission:  MessageSubmission
-  | origin:      MessageOrigin              (from signal-persona-origin)
+  | origin:      MessageOrigin              (local wire provenance noun)
   | stamped_at:  TimestampNanos             (ingress observation time;
                                              minted by message)
 ```
@@ -188,7 +190,7 @@ state. Router does not adopt the ingress timestamp as durable truth.
 
 ## Versioning
 
-`signal_frame::Frame` carries the protocol version; this
+The generated `Frame` carries the `signal-frame` protocol version; this
 contract inherits the kernel's version-skew guard.
 Schema-level changes here (adding/removing variants) are
 breaking and require a coordinated upgrade of
@@ -201,22 +203,22 @@ breaking and require a coordinated upgrade of
 (Send designer [hi])
 
 ;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { body: Request(Submit(MessageSubmission { recipient: MessageRecipient::new("designer"), body: MessageBody::new("hi") })) }
+;; Frame { body: Request(Submit(MessageSubmission { recipient: MessageRecipient::new("designer".into()), body: MessageBody::new("hi".into()) })) }
 ;; — the wire form carries the contract-local verb only; the daemon-
 ;; side Component Command will project to Sema Assert at observation
 ;; publish time.
 
 ;; inbox reads carry the contract-local QueryInbox operation
-;; Frame { body: Request(QueryInbox(InboxQuery { recipient: MessageRecipient::new("designer") })) }
+;; Frame { body: Request(QueryInbox(InboxQuery::new(MessageRecipient::new("designer".into())))) }
 ;; — the daemon-side Component Command projects to Sema Match.
 ```
 
 ## Round trips
 
-Each variant of `MessageRequest` and `MessageReply` has a frame round-trip
+Each variant of `Input` and `Output` has a frame round-trip
 test in `tests/round_trip.rs`. Representative NOTA text witnesses cover
-`Submit(MessageSubmission)` and `SubmissionAcceptance`; root channel enum text codecs
-come from `signal_frame::signal_channel!`.
+`Submit(MessageSubmission)` and `SubmissionAcceptance`; root channel enum text
+codecs come from the generated schema-derived roots.
 
 Architectural-truth tests (per
 `~/primary/skills/architectural-truth-tests.md`) fire when:
@@ -235,12 +237,16 @@ Architectural-truth tests (per
 
 ```
 src/
-└── lib.rs    — payloads + signal_channel! invocation
+├── lib.rs    — generated schema re-export + methods on generated nouns
+└── schema/
+    ├── mod.rs
+    └── lib.rs — generated WireContract artifact
+schema/
+└── lib.schema — authored contract vocabulary
 tests/
 └── round_trip.rs — per-variant frame round trips + NOTA text witnesses
 ```
 
 ## See also
 
-- `signal-frame/macros/src/validate.rs` — the macro
 - `~/primary/skills/component-triad.md` §"Verbs come in three layers".

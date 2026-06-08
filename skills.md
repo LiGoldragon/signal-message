@@ -19,15 +19,17 @@ Before changing code in this repo, read:
   (`message/`, `router/`)
 
 If your change adds a new request or reply variant, edit
-`src/lib.rs` first, then push, then update the consumers.
+`schema/lib.schema`, regenerate `src/schema/lib.rs`, then update the
+methods/tests and consumers.
 
 ## What this repo owns
 
-- The closed `MessageRequest` enum (`Submit`, `SubmitStamped`,
+- The closed `Input` enum (`Submit`, `SubmitStamped`,
   `QueryInbox`) for message ingress and router ingress.
-- The closed `MessageReply` enum (the responses the router
+- The closed `Output` enum (the responses the router
   sends back).
-- The `Frame` type emitted by `signal_frame::signal_channel!`.
+- The generated `Frame` type emitted by the schema-rust-next
+  WireContract target over `signal-frame`.
 - The wire-form round-trip tests in `tests/round_trip.rs`.
 
 ## What this repo does not own

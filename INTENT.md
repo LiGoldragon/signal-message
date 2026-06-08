@@ -16,7 +16,7 @@ Component daemon intent stays in `message/INTENT.md`.
 
 `signal-message` is the **ordinary peer-callable wire contract** for message
 ingress. It carries two named relations sharing one root family
-(`MessageRequest` / `MessageReply`): the client-message relation, where a
+(`Input` / `Output`): the client-message relation, where a
 `message` CLI or component client submits a message, and the router-ingress
 relation, where the message daemon forwards a stamped submission to
 `router`. Routing policy, delivery state, channel authority, and the
@@ -70,13 +70,18 @@ operation verbs":
 
 ## Constraints
 
-- This crate carries only typed wire vocabulary, NOTA codecs, and round-trip
-  witnesses.
+- `schema/lib.schema` is the source of truth. The checked-in generated
+  `src/schema/lib.rs` is a freshness-checked artifact, not handwritten
+  vocabulary.
+- This crate carries only typed wire vocabulary, NOTA codecs, generated
+  signal-frame codecs, and round-trip witnesses.
 - No runtime code: no actors, no tokio, no socket binding, no redb, no routing
   or delivery logic.
 - No durable message ledger here — both the CLI and the daemon are stateless
   boundary surfaces; routing policy and delivery state stay in `router`.
 - Contract types derive NOTA in this crate. Consumers do not carry shadow types.
+- `signal_channel!` is not used here; published contracts migrate to
+  schema-next/schema-rust-next derived surfaces.
 - Every operation and reply variant round-trips through both rkyv frames and
   NOTA text.
 - The two relations share one root family but address two different sockets
@@ -99,9 +104,10 @@ never appears on the wire.
 ## Code map
 
 ```text
-src/lib.rs                       — Message/StampedMessage/InboxQuery records, NOTA codecs, signal_channel! invocation
-schema/signal-message.concept.schema — concept-schema source for the contract
-tests/round_trip.rs              — rkyv frame and NOTA round-trip witnesses per operation
+schema/lib.schema     — authored source for Input, Output, and payload records
+src/schema/lib.rs     — generated schema-rust-next WireContract artifact
+src/lib.rs            — re-export + methods on generated nouns
+tests/round_trip.rs   — rkyv frame and NOTA round-trip witnesses per operation
 ```
 
 ## Non-ownership
