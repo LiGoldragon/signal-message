@@ -34,3 +34,49 @@ fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
         "generated NOTA traits and signal-frame NOTA support are gated through the local feature",
     );
 }
+
+#[test]
+fn binary_only_dependency_tree_does_not_contain_nota_next() {
+    let manifest = CargoManifest::from_environment();
+    let tree = manifest.cargo_tree(&["--edges", "normal", "--no-default-features"]);
+
+    assert!(
+        !tree.contains("nota-next") && !tree.contains("nota_next"),
+        "binary-only dependency tree must not contain nota-next:\n{tree}"
+    );
+}
+
+struct CargoManifest {
+    path: std::path::PathBuf,
+}
+
+impl CargoManifest {
+    fn from_environment() -> Self {
+        Self {
+            path: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"),
+        }
+    }
+
+    fn cargo_tree(&self, arguments: &[&str]) -> String {
+        let output = std::process::Command::new("cargo")
+            .arg("tree")
+            .arg("--manifest-path")
+            .arg(self.path())
+            .args(arguments)
+            .output()
+            .expect("run cargo tree");
+
+        assert!(
+            output.status.success(),
+            "cargo tree failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        String::from_utf8(output.stdout).expect("cargo tree stdout is utf8")
+    }
+
+    fn path(&self) -> &std::path::Path {
+        self.path.as_path()
+    }
+}
