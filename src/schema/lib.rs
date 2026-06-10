@@ -16,67 +16,67 @@ pub use nota_next::{NotaDecode, NotaDecodeError, NotaEncode, NotaSource};
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MessageRecipient(pub String);
+pub struct MessageRecipient(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MessageSender(pub String);
+pub struct MessageSender(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MessageBody(pub String);
+pub struct MessageBody(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MessageSlot(pub Integer);
+pub struct MessageSlot(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct TimestampNanos(pub Integer);
+pub struct TimestampNanos(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct WirePath(pub String);
+pub struct WirePath(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SocketMode(pub Integer);
+pub struct SocketMode(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct UnixUserIdentifier(pub Integer);
+pub struct UnixUserIdentifier(Integer);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SystemPrincipal(pub String);
+pub struct SystemPrincipal(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct EngineIdentifier(pub String);
+pub struct EngineIdentifier(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct HostName(pub String);
+pub struct HostName(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct NetworkPeer(pub String);
+pub struct NetworkPeer(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ComponentInstanceName(pub String);
+pub struct ComponentInstanceName(String);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -185,12 +185,12 @@ pub struct ComponentMessageIngress {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SubmissionAcceptance(pub MessageSlot);
+pub struct SubmissionAcceptance(MessageSlot);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InboxQuery(pub MessageRecipient);
+pub struct InboxQuery(MessageRecipient);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -222,7 +222,7 @@ pub struct InboxEntry {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InboxListing(pub Vec<InboxEntry>);
+pub struct InboxListing(Vec<InboxEntry>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -244,7 +244,7 @@ pub enum SubmissionRejectionReason {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SubmissionRejection(pub SubmissionRejectionReason);
+pub struct SubmissionRejection(SubmissionRejectionReason);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -343,8 +343,8 @@ pub enum Output {
 
 #[rustfmt::skip]
 impl MessageRecipient {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -362,8 +362,8 @@ impl From<String> for MessageRecipient {
 
 #[rustfmt::skip]
 impl MessageSender {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -381,8 +381,8 @@ impl From<String> for MessageSender {
 
 #[rustfmt::skip]
 impl MessageBody {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -438,8 +438,8 @@ impl From<Integer> for TimestampNanos {
 
 #[rustfmt::skip]
 impl WirePath {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -495,8 +495,8 @@ impl From<Integer> for UnixUserIdentifier {
 
 #[rustfmt::skip]
 impl SystemPrincipal {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -514,8 +514,8 @@ impl From<String> for SystemPrincipal {
 
 #[rustfmt::skip]
 impl EngineIdentifier {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -533,8 +533,8 @@ impl From<String> for EngineIdentifier {
 
 #[rustfmt::skip]
 impl HostName {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -552,8 +552,8 @@ impl From<String> for HostName {
 
 #[rustfmt::skip]
 impl NetworkPeer {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0
@@ -571,8 +571,8 @@ impl From<String> for NetworkPeer {
 
 #[rustfmt::skip]
 impl ComponentInstanceName {
-    pub fn new(payload: String) -> Self {
-        Self(payload)
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
     }
     pub fn payload(&self) -> &String {
         &self.0

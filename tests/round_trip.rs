@@ -293,7 +293,7 @@ fn message_submission_request_round_trips_through_nota_text() {
         body: body("stack test"),
     });
 
-    round_trip_nota(request, "(Submit ([designer] Send [stack test]))");
+    round_trip_nota(request, "(Submit (designer Send [stack test]))");
 }
 
 #[test]
@@ -346,8 +346,8 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
         .expect("decode configuration");
 
     assert_eq!(recovered, configuration);
-    assert!(text.contains("[/run/persona/X/message.sock]"));
-    assert!(text.contains("(Harness [initiator])"));
+    assert!(text.contains("/run/persona/X/message.sock"));
+    assert!(text.contains("(Harness initiator)"));
 }
 
 #[test]
