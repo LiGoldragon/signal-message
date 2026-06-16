@@ -17,19 +17,19 @@
  (InboxListing InboxListing)
  (MessageRequestUnimplemented MessageRequestUnimplemented)]
 {
-  MessageRecipient { value String }
-  MessageSender { value String }
-  MessageBody { value String }
-  MessageSlot { value Integer }
-  TimestampNanos { value Integer }
-  WirePath { value String }
-  SocketMode { value Integer }
-  UnixUserIdentifier { value Integer }
-  SystemPrincipal { value String }
-  EngineIdentifier { value String }
-  HostName { value String }
-  NetworkPeer { value String }
-  ComponentInstanceName { value String }
+  MessageRecipient String
+  MessageSender String
+  MessageBody String
+  MessageSlot Integer
+  TimestampNanos Integer
+  WirePath String
+  SocketMode Integer
+  UnixUserIdentifier Integer
+  SystemPrincipal String
+  EngineIdentifier String
+  HostName String
+  NetworkPeer String
+  ComponentInstanceName String
 
   MessageKind [Send Inbox]
 
@@ -81,7 +81,7 @@
     sender MessageSender
     body MessageBody
   }
-  InboxListing { messages (Vec InboxEntry) }
+  InboxListing { messages (Vector InboxEntry) }
   SubmissionRejectionReason [StoreRejected RecipientNotFound]
   SubmissionRejection { reason SubmissionRejectionReason }
 
@@ -108,7 +108,7 @@
     supervision_socket_path WirePath
     supervision_socket_mode SocketMode
     router_socket_path WirePath
-    component_ingresses (Vec ComponentMessageIngress)
+    component_ingresses (Vector ComponentMessageIngress)
     owner_identity OwnerIdentity
   }
 }
