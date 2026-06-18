@@ -34,14 +34,15 @@
   MessageKind [Send Inbox]
 
   MessageSubmission {
-    recipient.MessageRecipient
-    kind.MessageKind
-    body.MessageBody
+    MessageRecipient
+    MessageKind
+    MessageBody
   }
 
+  Host HostName
   OtherPersonaEngine {
     EngineIdentifier
-    host.HostName
+    Host
   }
   ConnectionClass [
     Owner
@@ -52,8 +53,8 @@
   ]
   ComponentName [Mind Message Router Terminal Harness System Introspect Orchestrate Spirit]
   InternalComponentInstanceOrigin {
-    component.ComponentName
-    instance.ComponentInstanceName
+    ComponentName
+    ComponentInstanceName
   }
   MessageOrigin [
     (Internal ComponentName)
@@ -61,15 +62,17 @@
     (External ConnectionClass)
   ]
 
+  StampedAt TimestampNanos
   StampedMessageSubmission {
-    submission.MessageSubmission
-    origin.MessageOrigin
-    stamped_at.TimestampNanos
+    MessageSubmission
+    MessageOrigin
+    StampedAt
   }
 
+  IngressSocketPath WirePath
   ComponentMessageIngress {
-    origin.InternalComponentInstanceOrigin
-    socket_path.WirePath
+    InternalComponentInstanceOrigin
+    IngressSocketPath
     SocketMode
   }
 
@@ -78,8 +81,8 @@
   MessageOperationKind [Submit SubmitStamped QueryInbox]
   InboxEntry {
     MessageSlot
-    sender.MessageSender
-    body.MessageBody
+    MessageSender
+    MessageBody
   }
   InboxListing { (Messages (Vector InboxEntry)) }
   SubmissionRejectionReason [StoreRejected RecipientNotFound]
@@ -93,8 +96,8 @@
     (ResourceUnavailable ResourceKind)
   ]
   MessageRequestUnimplemented {
-    operation.MessageOperationKind
-    reason.MessageUnimplementedReason
+    MessageOperationKind
+    MessageUnimplementedReason
   }
 
   OwnerIdentity [
@@ -102,12 +105,17 @@
     (System SystemPrincipal)
   ]
 
+  MessageSocketPath WirePath
+  MessageSocketMode SocketMode
+  SupervisionSocketPath WirePath
+  SupervisionSocketMode SocketMode
+  RouterSocketPath WirePath
   MessageDaemonConfiguration {
-    message_socket_path.WirePath
-    message_socket_mode.SocketMode
-    supervision_socket_path.WirePath
-    supervision_socket_mode.SocketMode
-    router_socket_path.WirePath
+    MessageSocketPath
+    MessageSocketMode
+    SupervisionSocketPath
+    SupervisionSocketMode
+    RouterSocketPath
     (ComponentIngresses (Vector ComponentMessageIngress))
     OwnerIdentity
   }

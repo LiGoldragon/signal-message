@@ -86,11 +86,11 @@ impl ComponentInstanceName {
 
 impl InternalComponentInstanceOrigin {
     pub fn component(&self) -> ComponentName {
-        self.component
+        self.component_name
     }
 
     pub fn instance(&self) -> &ComponentInstanceName {
-        &self.instance
+        &self.component_instance_name
     }
 }
 
@@ -138,11 +138,11 @@ pub struct MessageDaemonConfigurationParts {
 impl From<MessageDaemonConfigurationParts> for MessageDaemonConfiguration {
     fn from(parts: MessageDaemonConfigurationParts) -> Self {
         Self {
-            message_socket_path: parts.message_socket_path,
-            message_socket_mode: parts.message_socket_mode,
-            supervision_socket_path: parts.supervision_socket_path,
-            supervision_socket_mode: parts.supervision_socket_mode,
-            router_socket_path: parts.router_socket_path,
+            message_socket_path: parts.message_socket_path.into(),
+            message_socket_mode: parts.message_socket_mode.into(),
+            supervision_socket_path: parts.supervision_socket_path.into(),
+            supervision_socket_mode: parts.supervision_socket_mode.into(),
+            router_socket_path: parts.router_socket_path.into(),
             component_ingresses: ComponentIngresses::new(parts.component_ingresses),
             owner_identity: parts.owner_identity,
         }

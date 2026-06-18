@@ -99,17 +99,22 @@ pub enum MessageKind {
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MessageSubmission {
-    pub recipient: MessageRecipient,
-    pub kind: MessageKind,
-    pub body: MessageBody,
+    pub message_recipient: MessageRecipient,
+    pub message_kind: MessageKind,
+    pub message_body: MessageBody,
 }
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Host(HostName);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OtherPersonaEngine {
     pub engine_identifier: EngineIdentifier,
-    pub host: HostName,
+    pub host: Host,
 }
 
 #[rustfmt::skip]
@@ -151,8 +156,8 @@ pub enum ComponentName {
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InternalComponentInstanceOrigin {
-    pub component: ComponentName,
-    pub instance: ComponentInstanceName,
+    pub component_name: ComponentName,
+    pub component_instance_name: ComponentInstanceName,
 }
 
 #[rustfmt::skip]
@@ -167,18 +172,28 @@ pub enum MessageOrigin {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct StampedAt(TimestampNanos);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StampedMessageSubmission {
-    pub submission: MessageSubmission,
-    pub origin: MessageOrigin,
-    pub stamped_at: TimestampNanos,
+    pub message_submission: MessageSubmission,
+    pub message_origin: MessageOrigin,
+    pub stamped_at: StampedAt,
 }
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct IngressSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ComponentMessageIngress {
-    pub origin: InternalComponentInstanceOrigin,
-    pub socket_path: WirePath,
+    pub internal_component_instance_origin: InternalComponentInstanceOrigin,
+    pub ingress_socket_path: IngressSocketPath,
     pub socket_mode: SocketMode,
 }
 
@@ -215,8 +230,8 @@ pub enum MessageOperationKind {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InboxEntry {
     pub message_slot: MessageSlot,
-    pub sender: MessageSender,
-    pub body: MessageBody,
+    pub message_sender: MessageSender,
+    pub message_body: MessageBody,
 }
 
 #[rustfmt::skip]
@@ -302,8 +317,8 @@ pub enum MessageUnimplementedReason {
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MessageRequestUnimplemented {
-    pub operation: MessageOperationKind,
-    pub reason: MessageUnimplementedReason,
+    pub message_operation_kind: MessageOperationKind,
+    pub message_unimplemented_reason: MessageUnimplementedReason,
 }
 
 #[rustfmt::skip]
@@ -317,17 +332,42 @@ pub enum OwnerIdentity {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MessageSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MessageSocketMode(SocketMode);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SupervisionSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SupervisionSocketMode(SocketMode);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RouterSocketPath(WirePath);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ComponentIngresses(Vec<ComponentMessageIngress>);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MessageDaemonConfiguration {
-    pub message_socket_path: WirePath,
-    pub message_socket_mode: SocketMode,
-    pub supervision_socket_path: WirePath,
-    pub supervision_socket_mode: SocketMode,
-    pub router_socket_path: WirePath,
+    pub message_socket_path: MessageSocketPath,
+    pub message_socket_mode: MessageSocketMode,
+    pub supervision_socket_path: SupervisionSocketPath,
+    pub supervision_socket_mode: SupervisionSocketMode,
+    pub router_socket_path: RouterSocketPath,
     pub(crate) component_ingresses: ComponentIngresses,
     pub owner_identity: OwnerIdentity,
 }
@@ -833,6 +873,63 @@ impl PartialEq<&str> for ComponentInstanceName {
 }
 
 #[rustfmt::skip]
+impl Host {
+    pub fn new(payload: HostName) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &HostName {
+        &self.0
+    }
+    pub fn into_payload(self) -> HostName {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<HostName> for Host {
+    fn from(payload: HostName) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl StampedAt {
+    pub fn new(payload: TimestampNanos) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &TimestampNanos {
+        &self.0
+    }
+    pub fn into_payload(self) -> TimestampNanos {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<TimestampNanos> for StampedAt {
+    fn from(payload: TimestampNanos) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl IngressSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for IngressSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl SubmissionAcceptance {
     pub fn new(payload: MessageSlot) -> Self {
         Self(payload)
@@ -923,6 +1020,101 @@ impl SubmissionRejection {
 #[rustfmt::skip]
 impl From<SubmissionRejectionReason> for SubmissionRejection {
     fn from(payload: SubmissionRejectionReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MessageSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for MessageSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MessageSocketMode {
+    pub fn new(payload: SocketMode) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SocketMode {
+        &self.0
+    }
+    pub fn into_payload(self) -> SocketMode {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SocketMode> for MessageSocketMode {
+    fn from(payload: SocketMode) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SupervisionSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for SupervisionSocketPath {
+    fn from(payload: WirePath) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl SupervisionSocketMode {
+    pub fn new(payload: SocketMode) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &SocketMode {
+        &self.0
+    }
+    pub fn into_payload(self) -> SocketMode {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<SocketMode> for SupervisionSocketMode {
+    fn from(payload: SocketMode) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RouterSocketPath {
+    pub fn new(payload: WirePath) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &WirePath {
+        &self.0
+    }
+    pub fn into_payload(self) -> WirePath {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<WirePath> for RouterSocketPath {
+    fn from(payload: WirePath) -> Self {
         Self::new(payload)
     }
 }

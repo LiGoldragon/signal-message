@@ -53,9 +53,9 @@ fn instance(value: &str) -> ComponentInstanceName {
 
 fn submission(recipient_value: &str, body_value: &str) -> MessageSubmission {
     MessageSubmission {
-        recipient: recipient(recipient_value),
-        kind: MessageKind::Send,
-        body: body(body_value),
+        message_recipient: recipient(recipient_value),
+        message_kind: MessageKind::Send,
+        message_body: body(body_value),
     }
 }
 
@@ -107,9 +107,9 @@ where
 #[test]
 fn message_submission_request_round_trips_through_length_prefixed_frame() {
     let request = Input::Submit(MessageSubmission {
-        recipient: recipient("designer"),
-        kind: MessageKind::Send,
-        body: body("stack test"),
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("stack test"),
     });
     let frame = request_frame(request.clone());
 
@@ -130,9 +130,9 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
 #[test]
 fn stamped_message_submission_request_round_trips_through_length_prefixed_frame() {
     let request = Input::SubmitStamped(StampedMessageSubmission {
-        submission: submission("designer", "stack test"),
-        origin: MessageOrigin::External(ConnectionClass::Owner),
-        stamped_at: TimestampNanos::new(42),
+        message_submission: submission("designer", "stack test"),
+        message_origin: MessageOrigin::External(ConnectionClass::Owner),
+        stamped_at: TimestampNanos::new(42).into(),
     });
     let frame = request_frame(request.clone());
 
@@ -196,8 +196,10 @@ fn submission_rejected_reply_round_trips_with_typed_reason() {
 #[test]
 fn unimplemented_reply_round_trips_with_typed_reason() {
     let reply = Output::MessageRequestUnimplemented(MessageRequestUnimplemented {
-        operation: MessageOperationKind::SubmitStamped,
-        reason: MessageUnimplementedReason::ResourceUnavailable(ResourceKind::PeerCredentials),
+        message_operation_kind: MessageOperationKind::SubmitStamped,
+        message_unimplemented_reason: MessageUnimplementedReason::ResourceUnavailable(
+            ResourceKind::PeerCredentials,
+        ),
     });
     let frame = reply_frame(reply.clone());
 
@@ -212,13 +214,13 @@ fn inbox_listing_round_trips_through_length_prefixed_frame() {
     let reply = Output::InboxListing(InboxListing::from_entries(vec![
         InboxEntry {
             message_slot: MessageSlot::new(1),
-            sender: sender("operator"),
-            body: body("first"),
+            message_sender: sender("operator"),
+            message_body: body("first"),
         },
         InboxEntry {
             message_slot: MessageSlot::new(2),
-            sender: sender("operator"),
-            body: body("second"),
+            message_sender: sender("operator"),
+            message_body: body("second"),
         },
     ]));
     let frame = reply_frame(reply.clone());
@@ -232,9 +234,9 @@ fn inbox_listing_round_trips_through_length_prefixed_frame() {
 #[test]
 fn payload_constructor_lifts_message_submission_into_request() {
     let payload = MessageSubmission {
-        recipient: recipient("designer"),
-        kind: MessageKind::Send,
-        body: body("via from"),
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("via from"),
     };
     let request = Input::Submit(payload.clone());
     assert_eq!(request, Input::Submit(payload));
@@ -250,14 +252,14 @@ fn payload_constructor_lifts_submission_acceptance_into_reply() {
 #[test]
 fn message_request_exposes_contract_owned_operation_kind() {
     let plain_submission = Input::Submit(MessageSubmission {
-        recipient: recipient("designer"),
-        kind: MessageKind::Send,
-        body: body("kind witness"),
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("kind witness"),
     });
     let stamped = Input::SubmitStamped(StampedMessageSubmission {
-        submission: submission("designer", "kind witness"),
-        origin: MessageOrigin::External(ConnectionClass::Owner),
-        stamped_at: TimestampNanos::new(1),
+        message_submission: submission("designer", "kind witness"),
+        message_origin: MessageOrigin::External(ConnectionClass::Owner),
+        stamped_at: TimestampNanos::new(1).into(),
     });
     let inbox = Input::QueryInbox(inbox_query("designer"));
 
@@ -288,9 +290,9 @@ fn message_operation_kind_round_trips_through_nota_text() {
 #[test]
 fn message_submission_request_round_trips_through_nota_text() {
     let request = Input::Submit(MessageSubmission {
-        recipient: recipient("designer"),
-        kind: MessageKind::Send,
-        body: body("stack test"),
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("stack test"),
     });
 
     round_trip_nota(request, "(Submit (designer Send [stack test]))");
@@ -299,9 +301,9 @@ fn message_submission_request_round_trips_through_nota_text() {
 #[test]
 fn stamped_message_submission_request_round_trips_through_nota_text() {
     let request = Input::SubmitStamped(StampedMessageSubmission {
-        submission: submission("designer", "stack test"),
-        origin: MessageOrigin::External(ConnectionClass::Owner),
-        stamped_at: TimestampNanos::new(99),
+        message_submission: submission("designer", "stack test"),
+        message_origin: MessageOrigin::External(ConnectionClass::Owner),
+        stamped_at: TimestampNanos::new(99).into(),
     });
 
     let text = request.to_nota();
@@ -330,11 +332,11 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
         supervision_socket_mode: SocketMode::new(0o600),
         router_socket_path: path("/run/persona/X/router.sock"),
         component_ingresses: vec![ComponentMessageIngress {
-            origin: InternalComponentInstanceOrigin {
-                component: ComponentName::Harness,
-                instance: instance("initiator"),
+            internal_component_instance_origin: InternalComponentInstanceOrigin {
+                component_name: ComponentName::Harness,
+                component_instance_name: instance("initiator"),
             },
-            socket_path: path("/run/persona/X/message-ingress/initiator.sock"),
+            ingress_socket_path: path("/run/persona/X/message-ingress/initiator.sock").into(),
             socket_mode: SocketMode::new(0o600),
         }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
@@ -359,11 +361,11 @@ fn message_daemon_configuration_round_trips_through_rkyv() {
         supervision_socket_mode: SocketMode::new(0o600),
         router_socket_path: path("/run/persona/X/router.sock"),
         component_ingresses: vec![ComponentMessageIngress {
-            origin: InternalComponentInstanceOrigin {
-                component: ComponentName::Harness,
-                instance: instance("reviewer"),
+            internal_component_instance_origin: InternalComponentInstanceOrigin {
+                component_name: ComponentName::Harness,
+                component_instance_name: instance("reviewer"),
             },
-            socket_path: path("/run/persona/X/message-ingress/reviewer.sock"),
+            ingress_socket_path: path("/run/persona/X/message-ingress/reviewer.sock").into(),
             socket_mode: SocketMode::new(0o600),
         }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
@@ -384,8 +386,8 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
 
     for reason in reasons {
         let reply = Output::MessageRequestUnimplemented(MessageRequestUnimplemented {
-            operation: MessageOperationKind::QueryInbox,
-            reason,
+            message_operation_kind: MessageOperationKind::QueryInbox,
+            message_unimplemented_reason: reason,
         });
         let text = reply.to_nota();
         let recovered = NotaSource::new(&text)
