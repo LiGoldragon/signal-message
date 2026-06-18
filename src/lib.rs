@@ -1,6 +1,7 @@
 //! Schema-derived Signal contract for message ingress relations.
 
 #[rustfmt::skip]
+#[allow(dead_code, private_interfaces)]
 pub mod schema;
 
 pub use schema::lib::*;
@@ -103,7 +104,56 @@ impl Input {
     }
 }
 
+impl InboxListing {
+    pub fn from_entries(entries: Vec<InboxEntry>) -> Self {
+        Self::new(Messages::new(entries))
+    }
+
+    pub fn entries(&self) -> &[InboxEntry] {
+        self.payload().payload().as_slice()
+    }
+
+    pub fn into_entries(self) -> Vec<InboxEntry> {
+        self.into_payload().into_payload()
+    }
+}
+
+impl Output {
+    pub fn inbox_listing_entries(entries: Vec<InboxEntry>) -> Self {
+        Self::InboxListing(InboxListing::from_entries(entries))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MessageDaemonConfigurationParts {
+    pub message_socket_path: WirePath,
+    pub message_socket_mode: SocketMode,
+    pub supervision_socket_path: WirePath,
+    pub supervision_socket_mode: SocketMode,
+    pub router_socket_path: WirePath,
+    pub component_ingresses: Vec<ComponentMessageIngress>,
+    pub owner_identity: OwnerIdentity,
+}
+
+impl From<MessageDaemonConfigurationParts> for MessageDaemonConfiguration {
+    fn from(parts: MessageDaemonConfigurationParts) -> Self {
+        Self {
+            message_socket_path: parts.message_socket_path,
+            message_socket_mode: parts.message_socket_mode,
+            supervision_socket_path: parts.supervision_socket_path,
+            supervision_socket_mode: parts.supervision_socket_mode,
+            router_socket_path: parts.router_socket_path,
+            component_ingresses: ComponentIngresses::new(parts.component_ingresses),
+            owner_identity: parts.owner_identity,
+        }
+    }
+}
+
 impl MessageDaemonConfiguration {
+    pub fn component_ingresses(&self) -> &[ComponentMessageIngress] {
+        self.component_ingresses.payload().as_slice()
+    }
+
     pub fn from_rkyv_bytes(bytes: &[u8]) -> Result<Self, MessageDaemonConfigurationArchiveError> {
         rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes)
             .map_err(|_| MessageDaemonConfigurationArchiveError::Decode)

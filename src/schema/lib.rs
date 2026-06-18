@@ -222,7 +222,12 @@ pub struct InboxEntry {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InboxListing(Vec<InboxEntry>);
+pub(crate) struct Messages(Vec<InboxEntry>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct InboxListing(Messages);
 
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
@@ -312,13 +317,18 @@ pub enum OwnerIdentity {
 #[rustfmt::skip]
 #[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ComponentIngresses(Vec<ComponentMessageIngress>);
+
+#[rustfmt::skip]
+#[cfg_attr(feature = "nota-text", derive(nota_next::NotaDecode, nota_next::NotaEncode))]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MessageDaemonConfiguration {
     pub message_socket_path: WirePath,
     pub message_socket_mode: SocketMode,
     pub supervision_socket_path: WirePath,
     pub supervision_socket_mode: SocketMode,
     pub router_socket_path: WirePath,
-    pub component_ingresses: Vec<ComponentMessageIngress>,
+    pub(crate) component_ingresses: ComponentIngresses,
     pub owner_identity: OwnerIdentity,
 }
 
@@ -861,7 +871,7 @@ impl From<MessageRecipient> for InboxQuery {
 }
 
 #[rustfmt::skip]
-impl InboxListing {
+impl Messages {
     pub fn new(payload: Vec<InboxEntry>) -> Self {
         Self(payload)
     }
@@ -873,8 +883,27 @@ impl InboxListing {
     }
 }
 #[rustfmt::skip]
-impl From<Vec<InboxEntry>> for InboxListing {
+impl From<Vec<InboxEntry>> for Messages {
     fn from(payload: Vec<InboxEntry>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl InboxListing {
+    pub fn new(payload: Messages) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Messages {
+        &self.0
+    }
+    pub fn into_payload(self) -> Messages {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Messages> for InboxListing {
+    fn from(payload: Messages) -> Self {
         Self::new(payload)
     }
 }
@@ -894,6 +923,25 @@ impl SubmissionRejection {
 #[rustfmt::skip]
 impl From<SubmissionRejectionReason> for SubmissionRejection {
     fn from(payload: SubmissionRejectionReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ComponentIngresses {
+    pub fn new(payload: Vec<ComponentMessageIngress>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<ComponentMessageIngress> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<ComponentMessageIngress> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<ComponentMessageIngress>> for ComponentIngresses {
+    fn from(payload: Vec<ComponentMessageIngress>) -> Self {
         Self::new(payload)
     }
 }
@@ -970,7 +1018,7 @@ impl Output {
     pub fn submission_rejected(payload: SubmissionRejectionReason) -> Self {
         Self::SubmissionRejected(SubmissionRejection::new(payload))
     }
-    pub fn inbox_listing(payload: Vec<InboxEntry>) -> Self {
+    pub fn inbox_listing(payload: Messages) -> Self {
         Self::InboxListing(InboxListing::new(payload))
     }
     pub fn message_request_unimplemented(payload: MessageRequestUnimplemented) -> Self {

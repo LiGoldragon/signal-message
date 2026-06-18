@@ -12,11 +12,11 @@ use signal_frame::{
 use signal_message::{
     ComponentInstanceName, ComponentMessageIngress, ComponentName, ConnectionClass, DependencyKind,
     Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, Input, InternalComponentInstanceOrigin,
-    MessageBody, MessageDaemonConfiguration, MessageKind, MessageOperationKind, MessageOrigin,
-    MessageRecipient, MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
-    MessageUnimplementedReason, Output, OwnerIdentity, ResourceKind, SocketMode,
-    StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
-    TimestampNanos, UnixUserIdentifier, WirePath,
+    MessageBody, MessageDaemonConfiguration, MessageDaemonConfigurationParts, MessageKind,
+    MessageOperationKind, MessageOrigin, MessageRecipient, MessageRequestUnimplemented,
+    MessageSender, MessageSlot, MessageSubmission, MessageUnimplementedReason, Output,
+    OwnerIdentity, ResourceKind, SocketMode, StampedMessageSubmission, SubmissionAcceptance,
+    SubmissionRejection, SubmissionRejectionReason, TimestampNanos, UnixUserIdentifier, WirePath,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -209,7 +209,7 @@ fn unimplemented_reply_round_trips_with_typed_reason() {
 
 #[test]
 fn inbox_listing_round_trips_through_length_prefixed_frame() {
-    let reply = Output::InboxListing(InboxListing::new(vec![
+    let reply = Output::InboxListing(InboxListing::from_entries(vec![
         InboxEntry {
             message_slot: MessageSlot::new(1),
             sender: sender("operator"),
@@ -323,7 +323,7 @@ fn submission_accepted_reply_round_trips_through_nota_text() {
 
 #[test]
 fn message_daemon_configuration_round_trips_through_nota_text() {
-    let configuration = MessageDaemonConfiguration {
+    let configuration = MessageDaemonConfiguration::from(MessageDaemonConfigurationParts {
         message_socket_path: path("/run/persona/X/message.sock"),
         message_socket_mode: SocketMode::new(0o660),
         supervision_socket_path: path("/run/persona/X/message-supervision.sock"),
@@ -338,7 +338,7 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
             socket_mode: SocketMode::new(0o600),
         }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
-    };
+    });
 
     let text = configuration.to_nota();
     let recovered = NotaSource::new(&text)
@@ -352,7 +352,7 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
 
 #[test]
 fn message_daemon_configuration_round_trips_through_rkyv() {
-    let configuration = MessageDaemonConfiguration {
+    let configuration = MessageDaemonConfiguration::from(MessageDaemonConfigurationParts {
         message_socket_path: path("/run/persona/X/message.sock"),
         message_socket_mode: SocketMode::new(0o660),
         supervision_socket_path: path("/run/persona/X/message-supervision.sock"),
@@ -367,7 +367,7 @@ fn message_daemon_configuration_round_trips_through_rkyv() {
             socket_mode: SocketMode::new(0o600),
         }],
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
-    };
+    });
 
     let bytes = configuration.to_rkyv_bytes().expect("archive");
     let recovered = MessageDaemonConfiguration::from_rkyv_bytes(&bytes).expect("decode rkyv");

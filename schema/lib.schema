@@ -34,14 +34,14 @@
   MessageKind [Send Inbox]
 
   MessageSubmission {
-    recipient MessageRecipient
-    kind MessageKind
-    body MessageBody
+    recipient.MessageRecipient
+    kind.MessageKind
+    body.MessageBody
   }
 
   OtherPersonaEngine {
-    engine_identifier EngineIdentifier
-    host HostName
+    EngineIdentifier
+    host.HostName
   }
   ConnectionClass [
     Owner
@@ -52,8 +52,8 @@
   ]
   ComponentName [Mind Message Router Terminal Harness System Introspect Orchestrate Spirit]
   InternalComponentInstanceOrigin {
-    component ComponentName
-    instance ComponentInstanceName
+    component.ComponentName
+    instance.ComponentInstanceName
   }
   MessageOrigin [
     (Internal ComponentName)
@@ -62,28 +62,28 @@
   ]
 
   StampedMessageSubmission {
-    submission MessageSubmission
-    origin MessageOrigin
-    stamped_at TimestampNanos
+    submission.MessageSubmission
+    origin.MessageOrigin
+    stamped_at.TimestampNanos
   }
 
   ComponentMessageIngress {
-    origin InternalComponentInstanceOrigin
-    socket_path WirePath
-    socket_mode SocketMode
+    origin.InternalComponentInstanceOrigin
+    socket_path.WirePath
+    SocketMode
   }
 
-  SubmissionAcceptance { message_slot MessageSlot }
-  InboxQuery { recipient MessageRecipient }
+  SubmissionAcceptance MessageSlot
+  InboxQuery MessageRecipient
   MessageOperationKind [Submit SubmitStamped QueryInbox]
   InboxEntry {
-    message_slot MessageSlot
-    sender MessageSender
-    body MessageBody
+    MessageSlot
+    sender.MessageSender
+    body.MessageBody
   }
-  InboxListing { messages (Vector InboxEntry) }
+  InboxListing { (Messages (Vector InboxEntry)) }
   SubmissionRejectionReason [StoreRejected RecipientNotFound]
-  SubmissionRejection { reason SubmissionRejectionReason }
+  SubmissionRejection SubmissionRejectionReason
 
   DependencyKind [Router Mind Harness Terminal]
   ResourceKind [MessageSocket RouterSocket PeerCredentials Store]
@@ -93,8 +93,8 @@
     (ResourceUnavailable ResourceKind)
   ]
   MessageRequestUnimplemented {
-    operation MessageOperationKind
-    reason MessageUnimplementedReason
+    operation.MessageOperationKind
+    reason.MessageUnimplementedReason
   }
 
   OwnerIdentity [
@@ -103,12 +103,12 @@
   ]
 
   MessageDaemonConfiguration {
-    message_socket_path WirePath
-    message_socket_mode SocketMode
-    supervision_socket_path WirePath
-    supervision_socket_mode SocketMode
-    router_socket_path WirePath
-    component_ingresses (Vector ComponentMessageIngress)
-    owner_identity OwnerIdentity
+    message_socket_path.WirePath
+    message_socket_mode.SocketMode
+    supervision_socket_path.WirePath
+    supervision_socket_mode.SocketMode
+    router_socket_path.WirePath
+    (ComponentIngresses (Vector ComponentMessageIngress))
+    OwnerIdentity
   }
 }
