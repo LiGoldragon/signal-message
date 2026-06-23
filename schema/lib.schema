@@ -84,7 +84,7 @@
     MessageSender
     MessageBody
   }
-  InboxListing { (Messages (Vector InboxEntry)) }
+  InboxListing { Messages.(Vector InboxEntry) }
   SubmissionRejectionReason [StoreRejected RecipientNotFound]
   SubmissionRejection SubmissionRejectionReason
 
@@ -116,7 +116,7 @@
     SupervisionSocketPath
     SupervisionSocketMode
     RouterSocketPath
-    (ComponentIngresses (Vector ComponentMessageIngress))
+    ComponentIngresses.(Vector ComponentMessageIngress)
     OwnerIdentity
   }
 }
