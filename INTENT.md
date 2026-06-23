@@ -81,7 +81,7 @@ operation verbs":
   boundary surfaces; routing policy and delivery state stay in `router`.
 - Contract types derive NOTA in this crate. Consumers do not carry shadow types.
 - `signal_channel!` is not used here; published contracts migrate to
-  schema-next/schema-rust-next derived surfaces.
+  schema/schema-rust derived surfaces.
 - Every operation and reply variant round-trips through both rkyv frames and
   NOTA text.
 - The two relations share one root family but address two different sockets
@@ -105,7 +105,7 @@ never appears on the wire.
 
 ```text
 schema/lib.schema     — authored source for Input, Output, and payload records
-src/schema/lib.rs     — generated schema-rust-next WireContract artifact
+src/schema/lib.rs     — generated schema-rust WireContract artifact
 src/lib.rs            — re-export + methods on generated nouns
 tests/round_trip.rs   — rkyv frame and NOTA round-trip witnesses per operation
 ```

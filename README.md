@@ -6,7 +6,7 @@ relation (`message-daemon` to `router`) in one root family.
 
 Read `src/lib.rs` for the public interface — two enums
 (`Input`, `Output`) generated from `schema/lib.schema` by
-`schema-rust-next`. The variants ARE the messages this channel
+`schema-rust`. The variants ARE the messages this channel
 carries.
 
 ## Quick reference

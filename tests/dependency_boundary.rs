@@ -4,8 +4,8 @@ fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
     let source = include_str!("../src/lib.rs");
 
     assert!(
-        cargo_toml.contains("schema-rust-next"),
-        "schema-rust-next owns generated contract emission",
+        cargo_toml.contains("schema-rust"),
+        "schema-rust owns generated contract emission",
     );
     assert!(
         cargo_toml
@@ -30,19 +30,19 @@ fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
         "direct signal-message users keep the NOTA projection by default",
     );
     assert!(
-        cargo_toml.contains("nota-text = [\"dep:nota-next\", \"signal-frame/nota-text\"]"),
+        cargo_toml.contains("nota-text = [\"dep:nota\", \"signal-frame/nota-text\"]"),
         "generated NOTA traits and signal-frame NOTA support are gated through the local feature",
     );
 }
 
 #[test]
-fn binary_only_dependency_tree_does_not_contain_nota_next() {
+fn binary_only_dependency_tree_does_not_contain_nota() {
     let manifest = CargoManifest::from_environment();
     let tree = manifest.cargo_tree(&["--edges", "normal", "--no-default-features"]);
 
     assert!(
-        !tree.contains("nota-next") && !tree.contains("nota_next"),
-        "binary-only dependency tree must not contain nota-next:\n{tree}"
+        !tree.contains("nota") && !tree.contains("nota"),
+        "binary-only dependency tree must not contain nota:\n{tree}"
     );
 }
 

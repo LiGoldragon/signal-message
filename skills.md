@@ -28,7 +28,7 @@ methods/tests and consumers.
   `QueryInbox`) for message ingress and router ingress.
 - The closed `Output` enum (the responses the router
   sends back).
-- The generated `Frame` type emitted by the schema-rust-next
+- The generated `Frame` type emitted by the schema-rust
   WireContract target over `signal-frame`.
 - The wire-form round-trip tests in `tests/round_trip.rs`.
 
