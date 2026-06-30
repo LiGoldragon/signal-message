@@ -2,7 +2,28 @@
 
 The Signal contract for the engine's message-ingress path. It owns
 **two named relations sharing one root family** (`Input` / `Output`),
-wired across two different sockets:
+wired across two different sockets.
+
+## Overview and direction
+
+`signal-message` is the **ordinary peer-callable wire contract** for message
+ingress: the typed vocabulary two relations speak. The client-message relation
+carries a `message` CLI or component client submitting a message; the
+router-ingress relation carries the `message` daemon forwarding a
+provenance-stamped submission to `router`. Both share the one root family
+(`Input` / `Output`). Routing policy, delivery state, channel authority, and
+the ingress daemon's runtime all live elsewhere (`router`, `message`); this
+crate is the typed vocabulary, not the runtime.
+
+The wire vocabulary is contract-local: the daemon lowers these public
+operations into component-local commands; Sema classification happens at
+observation time, not on the wire. Operation roots are domain verbs in verb
+form (`Submit`, `SubmitStamped`, `QueryInbox`), not Sema class words; reply
+success variants are past-tense / outcome-named matching the operation, and
+rejections are typed (`SubmissionRejected`) carrying a closed-enum reason.
+Payload record names are the domain nouns the operation carries
+(`MessageSubmission`, `StampedMessageSubmission`, `InboxQuery`), not `Request`,
+`Data`, or generic containers.
 
 ## Three-layer model
 
@@ -188,6 +209,25 @@ from a Relation A caller.
 Ingress timestamp is provenance; router commit time is durable message
 state. Router does not adopt the ingress timestamp as durable truth.
 
+## Constraints
+
+- `schema/lib.schema` is the source of truth. The checked-in generated
+  `src/schema/lib.rs` is a freshness-checked artifact, not handwritten
+  vocabulary. `signal_channel!` is not used here; published contracts migrate
+  to schema / schema-rust derived surfaces.
+- This crate carries only typed wire vocabulary, NOTA codecs, generated
+  signal-frame codecs, and round-trip witnesses. No runtime code: no actors,
+  no tokio, no socket binding, no redb, no routing or delivery logic.
+- No durable message ledger here — both the CLI and the daemon are stateless
+  boundary surfaces; routing policy and delivery state stay in `router`.
+- Contract types derive NOTA in this crate. Consumers do not carry shadow
+  types that re-derive the text surface.
+- Every operation and reply variant round-trips through both rkyv frames and
+  NOTA text.
+- The two relations share one root family but address two different sockets
+  (`message.sock` for clients, `router.sock` for router ingress); the contract
+  names that split, not the socket binding.
+
 ## Versioning
 
 The generated `Frame` carries the `signal-frame` protocol version; this
@@ -249,4 +289,10 @@ tests/
 
 ## See also
 
+- `../message/ARCHITECTURE.md` — daemon-side direction (boundary surfaces,
+  provenance stamping, configuration).
+- `../signal-router/ARCHITECTURE.md` — the router observation contract this
+  path feeds.
+- `~/primary/skills/contract-repo.md` — contract repo discipline and naming
+  rules.
 - `~/primary/skills/component-triad.md` §"Verbs come in three layers".
