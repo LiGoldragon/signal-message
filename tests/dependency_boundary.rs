@@ -4,8 +4,20 @@ fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
     let source = include_str!("../src/lib.rs");
 
     assert!(
-        cargo_toml.contains("schema-rust"),
+        cargo_toml.contains("github.com/LiGoldragon/schema.git"),
+        "schema supplies the TrueSchema source model",
+    );
+    assert!(
+        cargo_toml.contains("github.com/LiGoldragon/schema-rust.git"),
         "schema-rust owns generated contract emission",
+    );
+    let retired_producer_repositories =
+        ["schema", "schema-rust"].map(|producer| format!("{producer}-next"));
+    assert!(
+        retired_producer_repositories
+            .iter()
+            .all(|producer| !cargo_toml.contains(producer.as_str())),
+        "retired pre-TrueSchema producer repositories must not be used",
     );
     assert!(
         cargo_toml
