@@ -33,10 +33,14 @@
 
   MessageKind [Send Inbox]
 
+  ThreadName String
+  ThreadSelection [None (Named ThreadName)]
+
   MessageSubmission {
     MessageRecipient
     MessageKind
     MessageBody
+    ThreadSelection
   }
 
   Host HostName

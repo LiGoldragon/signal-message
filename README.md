@@ -17,7 +17,7 @@ use signal_frame::{
 };
 use signal_message::{
     Frame, FrameBody, MessageBody, MessageKind, MessageRecipient,
-    Input, MessageSubmission,
+    Input, MessageSubmission, ThreadSelection,
 };
 
 let exchange = ExchangeIdentifier::new(
@@ -26,9 +26,13 @@ let exchange = ExchangeIdentifier::new(
     LaneSequence::first(),
 );
 let request = Input::Submit(MessageSubmission {
-    recipient: MessageRecipient::new(String::from("designer")),
-    kind: MessageKind::Send,
-    body: MessageBody::new(String::from("stack test")),
+    message_recipient: MessageRecipient::new(String::from("designer")),
+    message_kind: MessageKind::Send,
+    message_body: MessageBody::new(String::from("stack test")),
+    // Optionality is a typed positional slot, never an omitted field:
+    // `ThreadSelection::None` for the default derived thread, or
+    // `ThreadSelection::Named(ThreadName::new(..))` for an explicit thread.
+    thread_selection: ThreadSelection::None,
 });
 let frame = Frame::new(FrameBody::Request {
     exchange,

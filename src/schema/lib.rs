@@ -143,10 +143,30 @@ pub enum MessageKind {
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadName(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum ThreadSelection {
+    None,
+    Named(ThreadName),
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MessageSubmission {
     pub message_recipient: MessageRecipient,
     pub message_kind: MessageKind,
     pub message_body: MessageBody,
+    pub thread_selection: ThreadSelection,
 }
 
 #[rustfmt::skip]
@@ -780,6 +800,25 @@ impl From<String> for ComponentInstanceName {
 }
 
 #[rustfmt::skip]
+impl ThreadName {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ThreadName {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl Host {
     pub fn new(payload: HostName) -> Self {
         Self(payload)
@@ -1046,6 +1085,13 @@ impl From<Vec<ComponentMessageIngress>> for ComponentIngresses {
 }
 
 #[rustfmt::skip]
+impl ThreadSelection {
+    pub fn named(payload: String) -> Self {
+        Self::Named(ThreadName::new(payload))
+    }
+}
+
+#[rustfmt::skip]
 impl ConnectionClass {
     pub fn non_owner_user(payload: Integer) -> Self {
         Self::NonOwnerUser(UnixUserIdentifier::new(payload))
@@ -1122,6 +1168,13 @@ impl Output {
     }
     pub fn message_request_unimplemented(payload: MessageRequestUnimplemented) -> Self {
         Self::MessageRequestUnimplemented(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadName> for ThreadSelection {
+    fn from(payload: ThreadName) -> Self {
+        Self::Named(payload)
     }
 }
 

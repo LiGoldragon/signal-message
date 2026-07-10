@@ -24,6 +24,12 @@ impl MessageBody {
     }
 }
 
+impl ThreadName {
+    pub fn as_str(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+
 impl MessageSlot {
     pub fn into_u64(self) -> u64 {
         self.into_payload()

@@ -16,7 +16,8 @@ use signal_message::{
     MessageOperationKind, MessageOrigin, MessageRecipient, MessageRequestUnimplemented,
     MessageSender, MessageSlot, MessageSubmission, MessageUnimplementedReason, Output,
     OwnerIdentity, ResourceKind, SocketMode, StampedMessageSubmission, SubmissionAcceptance,
-    SubmissionRejection, SubmissionRejectionReason, TimestampNanos, UnixUserIdentifier, WirePath,
+    SubmissionRejection, SubmissionRejectionReason, ThreadName, ThreadSelection, TimestampNanos,
+    UnixUserIdentifier, WirePath,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -56,6 +57,7 @@ fn submission(recipient_value: &str, body_value: &str) -> MessageSubmission {
         message_recipient: recipient(recipient_value),
         message_kind: MessageKind::Send,
         message_body: body(body_value),
+        thread_selection: ThreadSelection::None,
     }
 }
 
@@ -110,6 +112,7 @@ fn message_submission_request_round_trips_through_length_prefixed_frame() {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
         message_body: body("stack test"),
+        thread_selection: ThreadSelection::None,
     });
     let frame = request_frame(request.clone());
 
@@ -237,6 +240,7 @@ fn payload_constructor_lifts_message_submission_into_request() {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
         message_body: body("via from"),
+        thread_selection: ThreadSelection::None,
     };
     let request = Input::Submit(payload.clone());
     assert_eq!(request, Input::Submit(payload));
@@ -255,6 +259,7 @@ fn message_request_exposes_contract_owned_operation_kind() {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
         message_body: body("kind witness"),
+        thread_selection: ThreadSelection::None,
     });
     let stamped = Input::SubmitStamped(StampedMessageSubmission {
         message_submission: submission("designer", "kind witness"),
@@ -293,9 +298,61 @@ fn message_submission_request_round_trips_through_nota_text() {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
         message_body: body("stack test"),
+        thread_selection: ThreadSelection::None,
     });
 
-    round_trip_nota(request, "(Submit (designer Send [stack test]))");
+    round_trip_nota(request, "(Submit (designer Send [stack test] None))");
+}
+
+#[test]
+fn message_submission_without_explicit_thread_round_trips_as_typed_none_slot() {
+    let submission = MessageSubmission {
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("no thread"),
+        thread_selection: ThreadSelection::None,
+    };
+
+    round_trip_nota(submission, "(designer Send [no thread] None)");
+}
+
+#[test]
+fn message_submission_with_named_thread_round_trips_through_length_prefixed_frame() {
+    let request = Input::Submit(MessageSubmission {
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("thread test"),
+        thread_selection: ThreadSelection::Named(ThreadName::new(text("launch-plan"))),
+    });
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    match decoded.into_body() {
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            assert_eq!(decoded_request.payloads().head(), &request);
+        }
+        other => panic!("expected Submit request, got {other:?}"),
+    }
+}
+
+#[test]
+fn message_submission_with_named_thread_round_trips_through_nota_text() {
+    let submission = MessageSubmission {
+        message_recipient: recipient("designer"),
+        message_kind: MessageKind::Send,
+        message_body: body("thread test"),
+        thread_selection: ThreadSelection::Named(ThreadName::new(text("launch-plan"))),
+    };
+
+    round_trip_nota(
+        submission,
+        "(designer Send [thread test] (Named launch-plan))",
+    );
 }
 
 #[test]
