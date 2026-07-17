@@ -10,7 +10,12 @@ use signal_frame::{
     SignalOperationHeads, SubReply,
 };
 use signal_message::{
-    ComponentInstanceName, ComponentMessageIngress, ComponentName, ConnectionClass, DependencyKind,
+    AgentDeathMark, AgentEndpoint, AgentEndpointBinding, AgentEndpointKind, AgentIdentifier,
+    AgentIdentityAssignment, AgentRegistryEntry, AgentRegistryListing, AgentRegistryRejection,
+    AgentRegistryRejectionReason, AssignedAgentIdentity, ComponentInstanceName,
+    ComponentMessageIngress, ComponentName, ConnectionClass, DependencyKind, EndpointPath,
+    EndpointSelection, HarnessPid, HarnessStartTime, IdentityProvenance, ResumeIdentity,
+    ResumeSelection,
     Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, Input, InternalComponentInstanceOrigin,
     MessageBody, MessageDaemonConfiguration, MessageDaemonConfigurationParts, MessageKind,
     MessageOperationKind, MessageOrigin, MessageRecipient, MessageRequestUnimplemented,
@@ -283,7 +288,14 @@ fn message_request_exposes_contract_owned_operation_kind() {
 fn message_request_variants_declare_contract_local_operation_heads() {
     assert_eq!(
         <Input as SignalOperationHeads>::HEADS,
-        &["Submit", "SubmitStamped", "QueryInbox"]
+        &[
+            "Submit",
+            "SubmitStamped",
+            "QueryInbox",
+            "AssignAgentIdentity",
+            "BindAgentEndpoint",
+            "QueryAgentRegistry",
+        ]
     );
 }
 
@@ -446,6 +458,117 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
             message_operation_kind: MessageOperationKind::QueryInbox,
             message_unimplemented_reason: reason,
         });
+        let text = reply.to_nota();
+        let recovered = NotaSource::new(&text)
+            .parse::<Output>()
+            .expect("decode reply");
+        assert_eq!(recovered, reply);
+    }
+}
+
+#[test]
+fn assign_agent_identity_request_round_trips_through_length_prefixed_frame() {
+    let request = Input::AssignAgentIdentity(AgentIdentityAssignment {
+        harness_pid: HarnessPid::new(4242),
+        harness_start_time: HarnessStartTime::new(987654321),
+        resume_selection: ResumeSelection::Resumed(ResumeIdentity::new(text("session-abc123"))),
+    });
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    match decoded.into_body() {
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            assert_eq!(decoded_request.payloads().head(), &request);
+        }
+        other => panic!("expected AssignAgentIdentity request, got {other:?}"),
+    }
+}
+
+#[test]
+fn assigned_agent_identity_reply_round_trips_through_length_prefixed_frame() {
+    let reply = Output::AgentIdentityAssigned(AssignedAgentIdentity {
+        agent_identifier: AgentIdentifier::new(text("x7f2")),
+        identity_provenance: IdentityProvenance::Minted,
+    });
+    let frame = reply_frame(reply.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+    assert_eq!(decode_single_reply(decoded), reply);
+}
+
+#[test]
+fn bind_agent_endpoint_request_round_trips_through_length_prefixed_frame() {
+    let request = Input::BindAgentEndpoint(AgentEndpointBinding {
+        agent_identifier: AgentIdentifier::new(text("x7f2")),
+        agent_endpoint: AgentEndpoint {
+            agent_endpoint_kind: AgentEndpointKind::PtySocket,
+            endpoint_path: EndpointPath::new(path("/run/terminal-cell/session-a/data.sock")),
+        },
+        harness_pid: HarnessPid::new(4242),
+        harness_start_time: HarnessStartTime::new(987654321),
+    });
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    match decoded.into_body() {
+        FrameBody::Request {
+            request: decoded_request,
+            ..
+        } => {
+            assert_eq!(decoded_request.payloads().head(), &request);
+        }
+        other => panic!("expected BindAgentEndpoint request, got {other:?}"),
+    }
+}
+
+#[test]
+fn agent_registry_listing_reply_round_trips_with_every_field_populated() {
+    let reply = Output::AgentRegistryListing(AgentRegistryListing::from_entries(vec![
+        AgentRegistryEntry {
+            agent_identifier: AgentIdentifier::new(text("x7f2")),
+            endpoint_selection: EndpointSelection::Bound(AgentEndpoint {
+                agent_endpoint_kind: AgentEndpointKind::HarnessSocket,
+                endpoint_path: EndpointPath::new(path("/run/harness/harness.sock")),
+            }),
+            resume_selection: ResumeSelection::Resumed(ResumeIdentity::new(text("session-abc"))),
+            agent_death_mark: AgentDeathMark::NotDead,
+            harness_pid: HarnessPid::new(11),
+            harness_start_time: HarnessStartTime::new(22),
+        },
+        AgentRegistryEntry {
+            agent_identifier: AgentIdentifier::new(text("9k4w")),
+            endpoint_selection: EndpointSelection::None,
+            resume_selection: ResumeSelection::None,
+            agent_death_mark: AgentDeathMark::Killed,
+            harness_pid: HarnessPid::new(33),
+            harness_start_time: HarnessStartTime::new(44),
+        },
+    ]));
+    let frame = reply_frame(reply.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+    assert_eq!(decode_single_reply(decoded), reply);
+}
+
+#[test]
+fn agent_registry_rejection_reasons_are_typed_not_strings() {
+    let reasons = [
+        AgentRegistryRejectionReason::UnknownAgentIdentifier,
+        AgentRegistryRejectionReason::IdentifierSpanExhausted,
+        AgentRegistryRejectionReason::StoreRejected,
+    ];
+
+    for reason in reasons {
+        let reply = Output::AgentRegistryRejected(AgentRegistryRejection::new(reason));
         let text = reply.to_nota();
         let recovered = NotaSource::new(&text)
             .parse::<Output>()

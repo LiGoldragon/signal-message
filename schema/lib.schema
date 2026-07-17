@@ -5,16 +5,29 @@
 ;; router forwarding, and durable state live in the message and router
 ;; daemons.
 ;;
+;; Agent identity + delivery registry vocabulary: the messenger owns the
+;; authoritative process<->ID map. `AssignAgentIdentity` is the launch-time
+;; mint (new or reused-on-resume short identifier); `BindAgentEndpoint`
+;; updates the live delivery endpoint; `QueryAgentRegistry` reads the
+;; durable registry.
+;;
 ;; SELF-CONTAINED VOCABULARY. This schema defines the wire vocabulary locally.
 ;; Daemons project these local wire nouns into their internal provenance/runtime
 ;; nouns at the boundary.
 
 [(Submit MessageSubmission)
  (SubmitStamped StampedMessageSubmission)
- (QueryInbox InboxQuery)]
+ (QueryInbox InboxQuery)
+ (AssignAgentIdentity AgentIdentityAssignment)
+ (BindAgentEndpoint AgentEndpointBinding)
+ (QueryAgentRegistry AgentRegistryQuery)]
 [(SubmissionAccepted SubmissionAcceptance)
  (SubmissionRejected SubmissionRejection)
  (InboxListing InboxListing)
+ (AgentIdentityAssigned AssignedAgentIdentity)
+ (AgentEndpointBound BoundAgentEndpoint)
+ (AgentRegistryListing AgentRegistryListing)
+ (AgentRegistryRejected AgentRegistryRejection)
  (MessageRequestUnimplemented MessageRequestUnimplemented)]
 {
   MessageRecipient String
@@ -82,7 +95,54 @@
 
   SubmissionAcceptance MessageSlot
   InboxQuery MessageRecipient
-  MessageOperationKind [Submit SubmitStamped QueryInbox]
+  MessageOperationKind [Submit SubmitStamped QueryInbox AssignAgentIdentity BindAgentEndpoint QueryAgentRegistry]
+
+  AgentIdentifier String
+  HarnessPid Integer
+  HarnessStartTime Integer
+  ResumeIdentity String
+  ResumeSelection [None (Resumed ResumeIdentity)]
+
+  AgentEndpointKind [PtySocket HarnessSocket]
+  EndpointPath WirePath
+  AgentEndpoint {
+    AgentEndpointKind
+    EndpointPath
+  }
+  EndpointSelection [None (Bound AgentEndpoint)]
+  AgentDeathMark [NotDead Killed]
+
+  AgentIdentityAssignment {
+    HarnessPid
+    HarnessStartTime
+    ResumeSelection
+  }
+  IdentityProvenance [Minted Reused]
+  AssignedAgentIdentity {
+    AgentIdentifier
+    IdentityProvenance
+  }
+
+  AgentEndpointBinding {
+    AgentIdentifier
+    AgentEndpoint
+    HarnessPid
+    HarnessStartTime
+  }
+  BoundAgentEndpoint AgentIdentifier
+
+  AgentRegistryQuery [All (ByAgent AgentIdentifier)]
+  AgentRegistryEntry {
+    AgentIdentifier
+    EndpointSelection
+    ResumeSelection
+    AgentDeathMark
+    HarnessPid
+    HarnessStartTime
+  }
+  AgentRegistryListing { Entries.(Vector AgentRegistryEntry) }
+  AgentRegistryRejectionReason [UnknownAgentIdentifier IdentifierSpanExhausted StoreRejected]
+  AgentRegistryRejection AgentRegistryRejectionReason
   InboxEntry {
     MessageSlot
     MessageSender

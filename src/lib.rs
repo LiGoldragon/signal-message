@@ -106,7 +106,48 @@ impl Input {
             Self::Submit(_) => MessageOperationKind::Submit,
             Self::SubmitStamped(_) => MessageOperationKind::SubmitStamped,
             Self::QueryInbox(_) => MessageOperationKind::QueryInbox,
+            Self::AssignAgentIdentity(_) => MessageOperationKind::AssignAgentIdentity,
+            Self::BindAgentEndpoint(_) => MessageOperationKind::BindAgentEndpoint,
+            Self::QueryAgentRegistry(_) => MessageOperationKind::QueryAgentRegistry,
         }
+    }
+}
+
+impl AgentIdentifier {
+    pub fn as_str(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+
+impl ResumeIdentity {
+    pub fn as_str(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+
+impl HarnessPid {
+    pub fn into_u64(self) -> u64 {
+        self.into_payload()
+    }
+}
+
+impl HarnessStartTime {
+    pub fn into_u64(self) -> u64 {
+        self.into_payload()
+    }
+}
+
+impl AgentRegistryListing {
+    pub fn from_entries(entries: Vec<AgentRegistryEntry>) -> Self {
+        Self::new(Entries::new(entries))
+    }
+
+    pub fn entries(&self) -> &[AgentRegistryEntry] {
+        self.payload().payload().as_slice()
+    }
+
+    pub fn into_entries(self) -> Vec<AgentRegistryEntry> {
+        self.into_payload().into_payload()
     }
 }
 
