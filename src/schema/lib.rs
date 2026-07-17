@@ -451,9 +451,31 @@ pub enum AgentDeathMark {
     derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct AgentIdentityAssignment {
+pub struct HarnessProcessPin {
     pub harness_pid: HarnessPid,
     pub harness_start_time: HarnessStartTime,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum ProcessPinSelection {
+    None,
+    Pinned(HarnessProcessPin),
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AgentIdentityAssignment {
+    pub agent_identifier: AgentIdentifier,
+    pub process_pin_selection: ProcessPinSelection,
     pub resume_selection: ResumeSelection,
 }
 
@@ -473,8 +495,8 @@ pub struct AgentIdentityAssignment {
     Eq,
 )]
 pub enum IdentityProvenance {
-    Minted,
-    Reused,
+    Seated,
+    Reseated,
 }
 
 #[rustfmt::skip]
@@ -531,8 +553,7 @@ pub struct AgentRegistryEntry {
     pub endpoint_selection: EndpointSelection,
     pub resume_selection: ResumeSelection,
     pub agent_death_mark: AgentDeathMark,
-    pub harness_pid: HarnessPid,
-    pub harness_start_time: HarnessStartTime,
+    pub process_pin_selection: ProcessPinSelection,
 }
 
 #[rustfmt::skip]
@@ -568,7 +589,6 @@ pub struct AgentRegistryListing(Entries);
 )]
 pub enum AgentRegistryRejectionReason {
     UnknownAgentIdentifier,
-    IdentifierSpanExhausted,
     StoreRejected,
 }
 
@@ -1566,6 +1586,13 @@ impl EndpointSelection {
 }
 
 #[rustfmt::skip]
+impl ProcessPinSelection {
+    pub fn pinned(payload: HarnessProcessPin) -> Self {
+        Self::Pinned(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl AgentRegistryQuery {
     pub fn by_agent(payload: String) -> Self {
         Self::ByAgent(AgentIdentifier::new(payload))
@@ -1709,6 +1736,13 @@ impl From<ResumeIdentity> for ResumeSelection {
 impl From<AgentEndpoint> for EndpointSelection {
     fn from(payload: AgentEndpoint) -> Self {
         Self::Bound(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<HarnessProcessPin> for ProcessPinSelection {
+    fn from(payload: HarnessProcessPin) -> Self {
+        Self::Pinned(payload)
     }
 }
 

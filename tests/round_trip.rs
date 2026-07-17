@@ -14,7 +14,8 @@ use signal_message::{
     AgentIdentityAssignment, AgentRegistryEntry, AgentRegistryListing, AgentRegistryRejection,
     AgentRegistryRejectionReason, AssignedAgentIdentity, ComponentInstanceName,
     ComponentMessageIngress, ComponentName, ConnectionClass, DependencyKind, EndpointPath,
-    EndpointSelection, HarnessPid, HarnessStartTime, IdentityProvenance, ResumeIdentity,
+    EndpointSelection, HarnessPid, HarnessProcessPin, HarnessStartTime, IdentityProvenance,
+    ProcessPinSelection, ResumeIdentity,
     ResumeSelection,
     Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, Input, InternalComponentInstanceOrigin,
     MessageBody, MessageDaemonConfiguration, MessageDaemonConfigurationParts, MessageKind,
@@ -469,8 +470,11 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
 #[test]
 fn assign_agent_identity_request_round_trips_through_length_prefixed_frame() {
     let request = Input::AssignAgentIdentity(AgentIdentityAssignment {
-        harness_pid: HarnessPid::new(4242),
-        harness_start_time: HarnessStartTime::new(987654321),
+        agent_identifier: AgentIdentifier::new(text("x7f2")),
+        process_pin_selection: ProcessPinSelection::Pinned(HarnessProcessPin {
+            harness_pid: HarnessPid::new(4242),
+            harness_start_time: HarnessStartTime::new(987654321),
+        }),
         resume_selection: ResumeSelection::Resumed(ResumeIdentity::new(text("session-abc123"))),
     });
     let frame = request_frame(request.clone());
@@ -493,7 +497,7 @@ fn assign_agent_identity_request_round_trips_through_length_prefixed_frame() {
 fn assigned_agent_identity_reply_round_trips_through_length_prefixed_frame() {
     let reply = Output::AgentIdentityAssigned(AssignedAgentIdentity {
         agent_identifier: AgentIdentifier::new(text("x7f2")),
-        identity_provenance: IdentityProvenance::Minted,
+        identity_provenance: IdentityProvenance::Seated,
     });
     let frame = reply_frame(reply.clone());
 
@@ -540,16 +544,17 @@ fn agent_registry_listing_reply_round_trips_with_every_field_populated() {
             }),
             resume_selection: ResumeSelection::Resumed(ResumeIdentity::new(text("session-abc"))),
             agent_death_mark: AgentDeathMark::NotDead,
-            harness_pid: HarnessPid::new(11),
-            harness_start_time: HarnessStartTime::new(22),
+            process_pin_selection: ProcessPinSelection::Pinned(HarnessProcessPin {
+                harness_pid: HarnessPid::new(11),
+                harness_start_time: HarnessStartTime::new(22),
+            }),
         },
         AgentRegistryEntry {
             agent_identifier: AgentIdentifier::new(text("9k4w")),
             endpoint_selection: EndpointSelection::None,
             resume_selection: ResumeSelection::None,
             agent_death_mark: AgentDeathMark::Killed,
-            harness_pid: HarnessPid::new(33),
-            harness_start_time: HarnessStartTime::new(44),
+            process_pin_selection: ProcessPinSelection::None,
         },
     ]));
     let frame = reply_frame(reply.clone());
@@ -563,7 +568,6 @@ fn agent_registry_listing_reply_round_trips_with_every_field_populated() {
 fn agent_registry_rejection_reasons_are_typed_not_strings() {
     let reasons = [
         AgentRegistryRejectionReason::UnknownAgentIdentifier,
-        AgentRegistryRejectionReason::IdentifierSpanExhausted,
         AgentRegistryRejectionReason::StoreRejected,
     ];
 

@@ -5,11 +5,12 @@
 ;; router forwarding, and durable state live in the message and router
 ;; daemons.
 ;;
-;; Agent identity + delivery registry vocabulary: the messenger owns the
-;; authoritative process<->ID map. `AssignAgentIdentity` is the launch-time
-;; mint (new or reused-on-resume short identifier); `BindAgentEndpoint`
-;; updates the live delivery endpoint; `QueryAgentRegistry` reads the
-;; durable registry.
+;; Agent identity + delivery registry vocabulary: the ORCHESTRATOR is the
+;; mint — it allocates the short identifier before the process starts — and
+;; the messenger's registry is the durable consumer view of identity.
+;; `AssignAgentIdentity` seats an orchestrator-supplied identity (fresh, or
+;; reseated on resume/respawn); `BindAgentEndpoint` updates the live
+;; delivery endpoint; `QueryAgentRegistry` reads the durable registry.
 ;;
 ;; SELF-CONTAINED VOCABULARY. This schema defines the wire vocabulary locally.
 ;; Daemons project these local wire nouns into their internal provenance/runtime
@@ -112,12 +113,18 @@
   EndpointSelection [None (Bound AgentEndpoint)]
   AgentDeathMark [NotDead Killed]
 
-  AgentIdentityAssignment {
+  HarnessProcessPin {
     HarnessPid
     HarnessStartTime
+  }
+  ProcessPinSelection [None (Pinned HarnessProcessPin)]
+
+  AgentIdentityAssignment {
+    AgentIdentifier
+    ProcessPinSelection
     ResumeSelection
   }
-  IdentityProvenance [Minted Reused]
+  IdentityProvenance [Seated Reseated]
   AssignedAgentIdentity {
     AgentIdentifier
     IdentityProvenance
@@ -137,11 +144,10 @@
     EndpointSelection
     ResumeSelection
     AgentDeathMark
-    HarnessPid
-    HarnessStartTime
+    ProcessPinSelection
   }
   AgentRegistryListing { Entries.(Vector AgentRegistryEntry) }
-  AgentRegistryRejectionReason [UnknownAgentIdentifier IdentifierSpanExhausted StoreRejected]
+  AgentRegistryRejectionReason [UnknownAgentIdentifier StoreRejected]
   AgentRegistryRejection AgentRegistryRejectionReason
   InboxEntry {
     MessageSlot
