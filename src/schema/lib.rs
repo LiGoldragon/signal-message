@@ -330,6 +330,9 @@ pub enum MessageOperationKind {
     AssignAgentIdentity,
     BindAgentEndpoint,
     QueryAgentRegistry,
+    QueryThread,
+    SubscribeThread,
+    QueryThreads,
 }
 
 #[rustfmt::skip]
@@ -610,6 +613,8 @@ pub struct InboxEntry {
     pub message_slot: MessageSlot,
     pub message_sender: MessageSender,
     pub message_body: MessageBody,
+    pub thread_selection: ThreadSelection,
+    pub stamped_at: StampedAt,
 }
 
 #[rustfmt::skip]
@@ -655,6 +660,225 @@ pub enum SubmissionRejectionReason {
 )]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SubmissionRejection(SubmissionRejectionReason);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ErrorMessage(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ErrorReport(ErrorMessage);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadQuery(ThreadName);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RepositoryName(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct FeatureBranchName(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadRelation {
+    pub repository_name: RepositoryName,
+    pub feature_branch_name: FeatureBranchName,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum ThreadRelationSelection {
+    None,
+    Related(ThreadRelation),
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ParticipantName(String);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadSubscription {
+    pub thread_name: ThreadName,
+    pub participant_name: ParticipantName,
+    pub thread_relation_selection: ThreadRelationSelection,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadSubscriptionAcknowledgment {
+    pub thread_name: ThreadName,
+    pub participant_name: ParticipantName,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadEntry {
+    pub message_slot: MessageSlot,
+    pub message_sender: MessageSender,
+    pub message_body: MessageBody,
+    pub stamped_at: StampedAt,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Participants(Vec<ParticipantName>);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadEntries(Vec<ThreadEntry>);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadContents {
+    pub thread_name: ThreadName,
+    pub thread_relation_selection: ThreadRelationSelection,
+    pub participants: Participants,
+    pub thread_entries: ThreadEntries,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum ThreadIndexQuery {
+    All,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MessageCount(Integer);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadSummary {
+    pub thread_name: ThreadName,
+    pub thread_relation_selection: ThreadRelationSelection,
+    pub participants: Participants,
+    pub message_count: MessageCount,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Threads(Vec<ThreadSummary>);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadIndexEntries(Threads);
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+)]
+pub enum ThreadRejectionReason {
+    UnknownThread,
+    StoreRejected,
+}
+
+#[rustfmt::skip]
+#[cfg_attr(
+    feature = "nota-text",
+    derive(nota::NotaDecode, nota::NotaDecodeTraced, nota::NotaEncode)
+)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ThreadRejection(ThreadRejectionReason);
 
 #[rustfmt::skip]
 #[cfg_attr(
@@ -811,6 +1035,9 @@ pub enum Input {
     AssignAgentIdentity(AgentIdentityAssignment),
     BindAgentEndpoint(AgentEndpointBinding),
     QueryAgentRegistry(AgentRegistryQuery),
+    QueryThread(ThreadQuery),
+    SubscribeThread(ThreadSubscription),
+    QueryThreads(ThreadIndexQuery),
 }
 
 #[rustfmt::skip]
@@ -828,6 +1055,11 @@ pub enum Output {
     AgentRegistryListing(AgentRegistryListing),
     AgentRegistryRejected(AgentRegistryRejection),
     MessageRequestUnimplemented(MessageRequestUnimplemented),
+    Error(ErrorReport),
+    ThreadListing(ThreadContents),
+    ThreadSubscribed(ThreadSubscriptionAcknowledgment),
+    ThreadIndexListing(ThreadIndexEntries),
+    ThreadRejected(ThreadRejection),
 }
 
 #[rustfmt::skip]
@@ -1420,6 +1652,234 @@ impl From<SubmissionRejectionReason> for SubmissionRejection {
 }
 
 #[rustfmt::skip]
+impl ErrorMessage {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ErrorMessage {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ErrorReport {
+    pub fn new(payload: ErrorMessage) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ErrorMessage {
+        &self.0
+    }
+    pub fn into_payload(self) -> ErrorMessage {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ErrorMessage> for ErrorReport {
+    fn from(payload: ErrorMessage) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ThreadQuery {
+    pub fn new(payload: ThreadName) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ThreadName {
+        &self.0
+    }
+    pub fn into_payload(self) -> ThreadName {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ThreadName> for ThreadQuery {
+    fn from(payload: ThreadName) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl RepositoryName {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for RepositoryName {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl FeatureBranchName {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for FeatureBranchName {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ParticipantName {
+    pub fn new(payload: impl Into<String>) -> Self {
+        Self(payload.into())
+    }
+    pub fn payload(&self) -> &String {
+        &self.0
+    }
+    pub fn into_payload(self) -> String {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<String> for ParticipantName {
+    fn from(payload: String) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Participants {
+    pub fn new(payload: Vec<ParticipantName>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<ParticipantName> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<ParticipantName> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<ParticipantName>> for Participants {
+    fn from(payload: Vec<ParticipantName>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ThreadEntries {
+    pub fn new(payload: Vec<ThreadEntry>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<ThreadEntry> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<ThreadEntry> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<ThreadEntry>> for ThreadEntries {
+    fn from(payload: Vec<ThreadEntry>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl MessageCount {
+    pub fn new(payload: Integer) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Integer {
+        &self.0
+    }
+    pub fn into_payload(self) -> Integer {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Integer> for MessageCount {
+    fn from(payload: Integer) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl Threads {
+    pub fn new(payload: Vec<ThreadSummary>) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Vec<ThreadSummary> {
+        &self.0
+    }
+    pub fn into_payload(self) -> Vec<ThreadSummary> {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Vec<ThreadSummary>> for Threads {
+    fn from(payload: Vec<ThreadSummary>) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ThreadIndexEntries {
+    pub fn new(payload: Threads) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &Threads {
+        &self.0
+    }
+    pub fn into_payload(self) -> Threads {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<Threads> for ThreadIndexEntries {
+    fn from(payload: Threads) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl ThreadRejection {
+    pub fn new(payload: ThreadRejectionReason) -> Self {
+        Self(payload)
+    }
+    pub fn payload(&self) -> &ThreadRejectionReason {
+        &self.0
+    }
+    pub fn into_payload(self) -> ThreadRejectionReason {
+        self.0
+    }
+}
+#[rustfmt::skip]
+impl From<ThreadRejectionReason> for ThreadRejection {
+    fn from(payload: ThreadRejectionReason) -> Self {
+        Self::new(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl MessageSocketPath {
     pub fn new(payload: WirePath) -> Self {
         Self(payload)
@@ -1600,6 +2060,13 @@ impl AgentRegistryQuery {
 }
 
 #[rustfmt::skip]
+impl ThreadRelationSelection {
+    pub fn related(payload: ThreadRelation) -> Self {
+        Self::Related(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl MessageUnimplementedReason {
     pub fn dependency_missing(payload: DependencyKind) -> Self {
         Self::DependencyMissing(payload)
@@ -1639,6 +2106,15 @@ impl Input {
     pub fn query_agent_registry(payload: AgentRegistryQuery) -> Self {
         Self::QueryAgentRegistry(payload)
     }
+    pub fn query_thread(payload: ThreadName) -> Self {
+        Self::QueryThread(ThreadQuery::new(payload))
+    }
+    pub fn subscribe_thread(payload: ThreadSubscription) -> Self {
+        Self::SubscribeThread(payload)
+    }
+    pub fn query_threads(payload: ThreadIndexQuery) -> Self {
+        Self::QueryThreads(payload)
+    }
 }
 
 #[rustfmt::skip]
@@ -1666,6 +2142,21 @@ impl Output {
     }
     pub fn message_request_unimplemented(payload: MessageRequestUnimplemented) -> Self {
         Self::MessageRequestUnimplemented(payload)
+    }
+    pub fn error(payload: ErrorMessage) -> Self {
+        Self::Error(ErrorReport::new(payload))
+    }
+    pub fn thread_listing(payload: ThreadContents) -> Self {
+        Self::ThreadListing(payload)
+    }
+    pub fn thread_subscribed(payload: ThreadSubscriptionAcknowledgment) -> Self {
+        Self::ThreadSubscribed(payload)
+    }
+    pub fn thread_index_listing(payload: Threads) -> Self {
+        Self::ThreadIndexListing(ThreadIndexEntries::new(payload))
+    }
+    pub fn thread_rejected(payload: ThreadRejectionReason) -> Self {
+        Self::ThreadRejected(ThreadRejection::new(payload))
     }
 }
 
@@ -1754,6 +2245,13 @@ impl From<AgentIdentifier> for AgentRegistryQuery {
 }
 
 #[rustfmt::skip]
+impl From<ThreadRelation> for ThreadRelationSelection {
+    fn from(payload: ThreadRelation) -> Self {
+        Self::Related(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<DependencyKind> for MessageUnimplementedReason {
     fn from(payload: DependencyKind) -> Self {
         Self::DependencyMissing(payload)
@@ -1824,6 +2322,27 @@ impl From<AgentRegistryQuery> for Input {
 }
 
 #[rustfmt::skip]
+impl From<ThreadQuery> for Input {
+    fn from(payload: ThreadQuery) -> Self {
+        Self::QueryThread(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadSubscription> for Input {
+    fn from(payload: ThreadSubscription) -> Self {
+        Self::SubscribeThread(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadIndexQuery> for Input {
+    fn from(payload: ThreadIndexQuery) -> Self {
+        Self::QueryThreads(payload)
+    }
+}
+
+#[rustfmt::skip]
 impl From<SubmissionAcceptance> for Output {
     fn from(payload: SubmissionAcceptance) -> Self {
         Self::SubmissionAccepted(payload)
@@ -1880,6 +2399,41 @@ impl From<MessageRequestUnimplemented> for Output {
 }
 
 #[rustfmt::skip]
+impl From<ErrorReport> for Output {
+    fn from(payload: ErrorReport) -> Self {
+        Self::Error(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadContents> for Output {
+    fn from(payload: ThreadContents) -> Self {
+        Self::ThreadListing(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadSubscriptionAcknowledgment> for Output {
+    fn from(payload: ThreadSubscriptionAcknowledgment) -> Self {
+        Self::ThreadSubscribed(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadIndexEntries> for Output {
+    fn from(payload: ThreadIndexEntries) -> Self {
+        Self::ThreadIndexListing(payload)
+    }
+}
+
+#[rustfmt::skip]
+impl From<ThreadRejection> for Output {
+    fn from(payload: ThreadRejection) -> Self {
+        Self::ThreadRejected(payload)
+    }
+}
+
+#[rustfmt::skip]
 #[cfg(feature = "nota-text")]
 impl std::str::FromStr for Input {
     type Err = NotaDecodeError;
@@ -1919,6 +2473,9 @@ pub mod short_header {
     pub const INPUT_ASSIGN_AGENT_IDENTITY: u64 = 0x0003000000000000;
     pub const INPUT_BIND_AGENT_ENDPOINT: u64 = 0x0004000000000000;
     pub const INPUT_QUERY_AGENT_REGISTRY: u64 = 0x0005000000000000;
+    pub const INPUT_QUERY_THREAD: u64 = 0x0006000000000000;
+    pub const INPUT_SUBSCRIBE_THREAD: u64 = 0x0007000000000000;
+    pub const INPUT_QUERY_THREADS: u64 = 0x0008000000000000;
     pub const OUTPUT_SUBMISSION_ACCEPTED: u64 = 0x0100000000000000;
     pub const OUTPUT_SUBMISSION_REJECTED: u64 = 0x0101000000000000;
     pub const OUTPUT_INBOX_LISTING: u64 = 0x0102000000000000;
@@ -1927,6 +2484,11 @@ pub mod short_header {
     pub const OUTPUT_AGENT_REGISTRY_LISTING: u64 = 0x0105000000000000;
     pub const OUTPUT_AGENT_REGISTRY_REJECTED: u64 = 0x0106000000000000;
     pub const OUTPUT_MESSAGE_REQUEST_UNIMPLEMENTED: u64 = 0x0107000000000000;
+    pub const OUTPUT_ERROR: u64 = 0x0108000000000000;
+    pub const OUTPUT_THREAD_LISTING: u64 = 0x0109000000000000;
+    pub const OUTPUT_THREAD_SUBSCRIBED: u64 = 0x010A000000000000;
+    pub const OUTPUT_THREAD_INDEX_LISTING: u64 = 0x010B000000000000;
+    pub const OUTPUT_THREAD_REJECTED: u64 = 0x010C000000000000;
 }
 
 #[rustfmt::skip]
@@ -1986,6 +2548,9 @@ pub enum InputRoute {
     AssignAgentIdentity,
     BindAgentEndpoint,
     QueryAgentRegistry,
+    QueryThread,
+    SubscribeThread,
+    QueryThreads,
 }
 
 #[rustfmt::skip]
@@ -2012,6 +2577,11 @@ pub enum OutputRoute {
     AgentRegistryListing,
     AgentRegistryRejected,
     MessageRequestUnimplemented,
+    Error,
+    ThreadListing,
+    ThreadSubscribed,
+    ThreadIndexListing,
+    ThreadRejected,
 }
 
 #[rustfmt::skip]
@@ -2024,6 +2594,9 @@ impl Input {
             Self::AssignAgentIdentity(_) => InputRoute::AssignAgentIdentity,
             Self::BindAgentEndpoint(_) => InputRoute::BindAgentEndpoint,
             Self::QueryAgentRegistry(_) => InputRoute::QueryAgentRegistry,
+            Self::QueryThread(_) => InputRoute::QueryThread,
+            Self::SubscribeThread(_) => InputRoute::SubscribeThread,
+            Self::QueryThreads(_) => InputRoute::QueryThreads,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2034,6 +2607,9 @@ impl Input {
             Self::AssignAgentIdentity(_) => short_header::INPUT_ASSIGN_AGENT_IDENTITY,
             Self::BindAgentEndpoint(_) => short_header::INPUT_BIND_AGENT_ENDPOINT,
             Self::QueryAgentRegistry(_) => short_header::INPUT_QUERY_AGENT_REGISTRY,
+            Self::QueryThread(_) => short_header::INPUT_QUERY_THREAD,
+            Self::SubscribeThread(_) => short_header::INPUT_SUBSCRIBE_THREAD,
+            Self::QueryThreads(_) => short_header::INPUT_QUERY_THREADS,
         }
     }
     pub fn route_from_short_header(header: u64) -> Result<InputRoute, SignalFrameError> {
@@ -2048,6 +2624,9 @@ impl Input {
             short_header::INPUT_QUERY_AGENT_REGISTRY => {
                 Ok(InputRoute::QueryAgentRegistry)
             }
+            short_header::INPUT_QUERY_THREAD => Ok(InputRoute::QueryThread),
+            short_header::INPUT_SUBSCRIBE_THREAD => Ok(InputRoute::SubscribeThread),
+            short_header::INPUT_QUERY_THREADS => Ok(InputRoute::QueryThreads),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Input",
@@ -2108,6 +2687,11 @@ impl Output {
             Self::MessageRequestUnimplemented(_) => {
                 OutputRoute::MessageRequestUnimplemented
             }
+            Self::Error(_) => OutputRoute::Error,
+            Self::ThreadListing(_) => OutputRoute::ThreadListing,
+            Self::ThreadSubscribed(_) => OutputRoute::ThreadSubscribed,
+            Self::ThreadIndexListing(_) => OutputRoute::ThreadIndexListing,
+            Self::ThreadRejected(_) => OutputRoute::ThreadRejected,
         }
     }
     pub fn short_header(&self) -> u64 {
@@ -2126,6 +2710,11 @@ impl Output {
             Self::MessageRequestUnimplemented(_) => {
                 short_header::OUTPUT_MESSAGE_REQUEST_UNIMPLEMENTED
             }
+            Self::Error(_) => short_header::OUTPUT_ERROR,
+            Self::ThreadListing(_) => short_header::OUTPUT_THREAD_LISTING,
+            Self::ThreadSubscribed(_) => short_header::OUTPUT_THREAD_SUBSCRIBED,
+            Self::ThreadIndexListing(_) => short_header::OUTPUT_THREAD_INDEX_LISTING,
+            Self::ThreadRejected(_) => short_header::OUTPUT_THREAD_REJECTED,
         }
     }
     pub fn route_from_short_header(
@@ -2154,6 +2743,13 @@ impl Output {
             short_header::OUTPUT_MESSAGE_REQUEST_UNIMPLEMENTED => {
                 Ok(OutputRoute::MessageRequestUnimplemented)
             }
+            short_header::OUTPUT_ERROR => Ok(OutputRoute::Error),
+            short_header::OUTPUT_THREAD_LISTING => Ok(OutputRoute::ThreadListing),
+            short_header::OUTPUT_THREAD_SUBSCRIBED => Ok(OutputRoute::ThreadSubscribed),
+            short_header::OUTPUT_THREAD_INDEX_LISTING => {
+                Ok(OutputRoute::ThreadIndexListing)
+            }
+            short_header::OUTPUT_THREAD_REJECTED => Ok(OutputRoute::ThreadRejected),
             _ => {
                 Err(SignalFrameError::UnknownHeader {
                     root_enum: "Output",
@@ -2211,6 +2807,9 @@ impl signal_frame::SignalOperationHeads for Input {
         "AssignAgentIdentity",
         "BindAgentEndpoint",
         "QueryAgentRegistry",
+        "QueryThread",
+        "SubscribeThread",
+        "QueryThreads",
     ];
 }
 #[rustfmt::skip]

@@ -109,7 +109,28 @@ impl Input {
             Self::AssignAgentIdentity(_) => MessageOperationKind::AssignAgentIdentity,
             Self::BindAgentEndpoint(_) => MessageOperationKind::BindAgentEndpoint,
             Self::QueryAgentRegistry(_) => MessageOperationKind::QueryAgentRegistry,
+            Self::QueryThread(_) => MessageOperationKind::QueryThread,
+            Self::SubscribeThread(_) => MessageOperationKind::SubscribeThread,
+            Self::QueryThreads(_) => MessageOperationKind::QueryThreads,
         }
+    }
+}
+
+impl ThreadQuery {
+    pub fn thread_name(&self) -> &ThreadName {
+        self.payload()
+    }
+}
+
+impl ParticipantName {
+    pub fn as_str(&self) -> &str {
+        self.payload().as_str()
+    }
+}
+
+impl MessageCount {
+    pub fn into_u64(self) -> u64 {
+        self.into_payload()
     }
 }
 
@@ -168,6 +189,32 @@ impl InboxListing {
 impl Output {
     pub fn inbox_listing_entries(entries: Vec<InboxEntry>) -> Self {
         Self::InboxListing(InboxListing::from_entries(entries))
+    }
+}
+
+impl ThreadIndexEntries {
+    pub fn from_threads(threads: Vec<ThreadSummary>) -> Self {
+        Self::new(Threads::new(threads))
+    }
+
+    pub fn threads(&self) -> &[ThreadSummary] {
+        self.payload().payload().as_slice()
+    }
+
+    pub fn into_threads(self) -> Vec<ThreadSummary> {
+        self.into_payload().into_payload()
+    }
+}
+
+impl Participants {
+    pub fn names(&self) -> &[ParticipantName] {
+        self.payload().as_slice()
+    }
+}
+
+impl ThreadEntries {
+    pub fn entries(&self) -> &[ThreadEntry] {
+        self.payload().as_slice()
     }
 }
 

@@ -21,9 +21,12 @@ use signal_message::{
     MessageBody, MessageDaemonConfiguration, MessageDaemonConfigurationParts, MessageKind,
     MessageOperationKind, MessageOrigin, MessageRecipient, MessageRequestUnimplemented,
     MessageSender, MessageSlot, MessageSubmission, MessageUnimplementedReason, Output,
-    OwnerIdentity, ResourceKind, SocketMode, StampedMessageSubmission, SubmissionAcceptance,
-    SubmissionRejection, SubmissionRejectionReason, ThreadName, ThreadSelection, TimestampNanos,
-    UnixUserIdentifier, WirePath,
+    OwnerIdentity, ParticipantName, Participants, ResourceKind, SocketMode,
+    StampedAt, StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection,
+    SubmissionRejectionReason, ThreadContents, ThreadEntries, ThreadEntry, ThreadIndexEntries,
+    ThreadIndexQuery, ThreadName, ThreadQuery, ThreadRejection, ThreadRejectionReason,
+    ThreadRelation, ThreadRelationSelection, ThreadSelection, ThreadSubscription,
+    ThreadSubscriptionAcknowledgment, ThreadSummary, TimestampNanos, UnixUserIdentifier, WirePath,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -87,6 +90,13 @@ fn reply_frame(reply: Output) -> Frame {
         exchange: exchange(),
         reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
     })
+}
+
+fn decode_single_request(frame: Frame) -> Input {
+    match frame.into_body() {
+        FrameBody::Request { request, .. } => request.payloads().head().clone(),
+        other => panic!("expected request frame, got {other:?}"),
+    }
 }
 
 fn decode_single_reply(frame: Frame) -> Output {
@@ -225,11 +235,15 @@ fn inbox_listing_round_trips_through_length_prefixed_frame() {
             message_slot: MessageSlot::new(1),
             message_sender: sender("operator"),
             message_body: body("first"),
+            thread_selection: ThreadSelection::None,
+            stamped_at: StampedAt::new(TimestampNanos::new(11)),
         },
         InboxEntry {
             message_slot: MessageSlot::new(2),
             message_sender: sender("operator"),
             message_body: body("second"),
+            thread_selection: ThreadSelection::Named(ThreadName::new("triage".to_owned())),
+            stamped_at: StampedAt::new(TimestampNanos::new(12)),
         },
     ]));
     let frame = reply_frame(reply.clone());
@@ -296,6 +310,9 @@ fn message_request_variants_declare_contract_local_operation_heads() {
             "AssignAgentIdentity",
             "BindAgentEndpoint",
             "QueryAgentRegistry",
+            "QueryThread",
+            "SubscribeThread",
+            "QueryThreads",
         ]
     );
 }
@@ -579,4 +596,122 @@ fn agent_registry_rejection_reasons_are_typed_not_strings() {
             .expect("decode reply");
         assert_eq!(recovered, reply);
     }
+}
+
+fn participant(value: &str) -> ParticipantName {
+    ParticipantName::new(value.to_owned())
+}
+
+fn related_thread(name: &str) -> ThreadContents {
+    ThreadContents {
+        thread_name: ThreadName::new(name.to_owned()),
+        thread_relation_selection: ThreadRelationSelection::Related(ThreadRelation {
+            repository_name: signal_message::RepositoryName::new("orchestrate".to_owned()),
+            feature_branch_name: signal_message::FeatureBranchName::new(
+                "MessengerPromotion".to_owned(),
+            ),
+        }),
+        participants: Participants::new(vec![participant("li7f"), participant("x2qb")]),
+        thread_entries: ThreadEntries::new(vec![ThreadEntry {
+            message_slot: MessageSlot::new(4),
+            message_sender: sender("li7f"),
+            message_body: body("worktree scaffolded"),
+            stamped_at: StampedAt::new(TimestampNanos::new(99)),
+        }]),
+    }
+}
+
+#[test]
+fn thread_query_round_trips_through_length_prefixed_frame() {
+    let request = Input::QueryThread(ThreadQuery::new(ThreadName::new("triage".to_owned())));
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_request(decoded), request);
+}
+
+#[test]
+fn thread_subscription_round_trips_with_relation() {
+    let request = Input::SubscribeThread(ThreadSubscription {
+        thread_name: ThreadName::new("subagents".to_owned()),
+        participant_name: participant("li7f"),
+        thread_relation_selection: ThreadRelationSelection::None,
+    });
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_request(decoded), request);
+}
+
+#[test]
+fn thread_listing_round_trips_with_relation_participants_and_entries() {
+    let reply = Output::ThreadListing(related_thread("MessengerPromotion"));
+    let frame = reply_frame(reply.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_reply(decoded), reply);
+}
+
+#[test]
+fn thread_index_listing_round_trips_with_summaries() {
+    let reply = Output::ThreadIndexListing(ThreadIndexEntries::from_threads(vec![ThreadSummary {
+        thread_name: ThreadName::new("triage".to_owned()),
+        thread_relation_selection: ThreadRelationSelection::None,
+        participants: Participants::new(vec![participant("li7f")]),
+        message_count: signal_message::MessageCount::new(3),
+    }]));
+    let frame = reply_frame(reply.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_reply(decoded), reply);
+}
+
+#[test]
+fn thread_rejection_and_error_replies_are_typed() {
+    let rejection = Output::ThreadRejected(ThreadRejection::new(
+        ThreadRejectionReason::UnknownThread,
+    ));
+    let error = Output::Error(signal_message::ErrorReport::new(
+        signal_message::ErrorMessage::new("store rejected the write".to_owned()),
+    ));
+
+    for reply in [rejection, error] {
+        let frame = reply_frame(reply.clone());
+        let bytes = frame.encode_length_prefixed().expect("encode");
+        let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+        assert_eq!(decode_single_reply(decoded), reply);
+    }
+}
+
+#[test]
+fn thread_index_query_round_trips_bare() {
+    let request = Input::QueryThreads(ThreadIndexQuery::All);
+    let frame = request_frame(request.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_request(decoded), request);
+}
+
+#[test]
+fn thread_subscription_acknowledgment_round_trips() {
+    let reply = Output::ThreadSubscribed(ThreadSubscriptionAcknowledgment {
+        thread_name: ThreadName::new("subagents".to_owned()),
+        participant_name: participant("li7f"),
+    });
+    let frame = reply_frame(reply.clone());
+
+    let bytes = frame.encode_length_prefixed().expect("encode");
+    let decoded = Frame::decode_length_prefixed(&bytes).expect("decode");
+
+    assert_eq!(decode_single_reply(decoded), reply);
 }
