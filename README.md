@@ -46,6 +46,13 @@ The request operation heads are contract-local: `Submit`,
 `SubmitStamped`, and `QueryInbox`. Sema classification labels such as
 `Assert` and `Match` are daemon-side observation labels, not wire roots.
 
+## Compatibility release
+
+Version 0.7.1 preserves this contract's authored schema and generated wire
+artifacts. It pins its Nota, Signal Frame, and schema generator dependencies
+to immutable legacy-family revisions so consumers resolve one runtime codec
+family without changing the message wire vocabulary.
+
 ## See also
 
 - `ARCHITECTURE.md` — channel role + boundaries
