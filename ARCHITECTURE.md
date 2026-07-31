@@ -215,15 +215,15 @@ state. Router does not adopt the ingress timestamp as durable truth.
   `src/schema/lib.rs` is a freshness-checked artifact, not handwritten
   vocabulary. `signal_channel!` is not used here; published contracts migrate
   to schema / schema-rust derived surfaces.
-- This crate carries only typed wire vocabulary, NOTA codecs, generated
+- This crate carries only typed wire vocabulary, DOTOS codecs, generated
   signal-frame codecs, and round-trip witnesses. No runtime code: no actors,
   no tokio, no socket binding, no redb, no routing or delivery logic.
 - No durable message ledger here — both the CLI and the daemon are stateless
   boundary surfaces; routing policy and delivery state stay in `router`.
-- Contract types derive NOTA in this crate. Consumers do not carry shadow
+- Contract types derive DOTOS in this crate. Consumers do not carry shadow
   types that re-derive the text surface.
 - Every operation and reply variant round-trips through both rkyv frames and
-  NOTA text.
+  DOTOS text.
 - The two relations share one root family but address two different sockets
   (`message.sock` for clients, `router.sock` for router ingress); the contract
   names that split, not the socket binding.
@@ -238,7 +238,7 @@ breaking and require a coordinated upgrade of
 
 ## Examples
 
-```nota
+```dotos
 ;; the CLI invocation
 (Send designer [hi])
 
@@ -256,7 +256,7 @@ breaking and require a coordinated upgrade of
 ## Round trips
 
 Each variant of `Input` and `Output` has a frame round-trip
-test in `tests/round_trip.rs`. Representative NOTA text witnesses cover
+test in `tests/round_trip.rs`. Representative DOTOS text witnesses cover
 `Submit(MessageSubmission)` and `SubmissionAcceptance`; root channel enum text
 codecs come from the generated schema-derived roots.
 
@@ -284,7 +284,7 @@ src/
 schema/
 └── lib.schema — authored contract vocabulary
 tests/
-└── round_trip.rs — per-variant frame round trips + NOTA text witnesses
+└── round_trip.rs — per-variant frame round trips + DOTOS text witnesses
 ```
 
 ## See also

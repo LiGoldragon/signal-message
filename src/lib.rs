@@ -6,6 +6,12 @@ pub mod schema;
 
 pub use schema::lib::*;
 
+/// Compatibility names for reply payloads whose wire variants retain their
+/// established names under the current schema generator.
+pub type InboxListing = InboxListingReply;
+pub type AgentRegistryListing = AgentRegistryListingReply;
+pub type MessageRequestUnimplemented = MessageRequestUnimplementedReply;
+
 impl MessageRecipient {
     pub fn as_str(&self) -> &str {
         self.payload().as_str()

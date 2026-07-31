@@ -1,6 +1,7 @@
+{}
 ;; signal-message — ordinary working wire contract for message ingress.
 ;;
-;; Wire-only: emits the rkyv + optional NOTA codec and the signal-frame
+;; Wire-only: emits the rkyv + optional DOTOS codec and the signal-frame
 ;; request/reply envelope. Runtime provenance stamping, socket binding,
 ;; router forwarding, and durable state live in the message and router
 ;; daemons.
@@ -30,234 +31,236 @@
 ;; Daemons project these local wire nouns into their internal provenance/runtime
 ;; nouns at the boundary.
 
-[(Submit MessageSubmission)
- (SubmitStamped StampedMessageSubmission)
- (QueryInbox InboxQuery)
- (AssignAgentIdentity AgentIdentityAssignment)
- (BindAgentEndpoint AgentEndpointBinding)
- (QueryAgentRegistry AgentRegistryQuery)
- (QueryThread ThreadQuery)
- (SubscribeThread ThreadSubscription)
- (QueryThreads ThreadIndexQuery)]
-[(SubmissionAccepted SubmissionAcceptance)
- (SubmissionRejected SubmissionRejection)
- (InboxListing InboxListing)
- (AgentIdentityAssigned AssignedAgentIdentity)
- (AgentEndpointBound BoundAgentEndpoint)
- (AgentRegistryListing AgentRegistryListing)
- (AgentRegistryRejected AgentRegistryRejection)
- (MessageRequestUnimplemented MessageRequestUnimplemented)
- (Error ErrorReport)
- (ThreadListing ThreadContents)
- (ThreadSubscribed ThreadSubscriptionAcknowledgment)
- (ThreadIndexListing ThreadIndexEntries)
- (ThreadRejected ThreadRejection)]
+[Submit.MessageSubmission
+ SubmitStamped.StampedMessageSubmission
+ QueryInbox.InboxQuery
+ AssignAgentIdentity.AgentIdentityAssignment
+ BindAgentEndpoint.AgentEndpointBinding
+ QueryAgentRegistry.AgentRegistryQuery
+ QueryThread.ThreadQuery
+ SubscribeThread.ThreadSubscription
+ QueryThreads.ThreadIndexQuery]
+[SubmissionAccepted.SubmissionAcceptance
+ SubmissionRejected.SubmissionRejection
+ InboxListing.InboxListingReply
+ AgentIdentityAssigned.AssignedAgentIdentity
+ AgentEndpointBound.BoundAgentEndpoint
+ AgentRegistryListing.AgentRegistryListingReply
+ AgentRegistryRejected.AgentRegistryRejection
+ MessageRequestUnimplemented.MessageRequestUnimplementedReply
+ Error.ErrorReport
+ ThreadListing.ThreadContents
+ ThreadSubscribed.ThreadSubscriptionAcknowledgment
+ ThreadIndexListing.ThreadIndexEntries
+ ThreadRejected.ThreadRejection]
 {
-  MessageRecipient String
-  MessageSender String
-  MessageBody String
-  MessageSlot Integer
-  TimestampNanos Integer
-  WirePath String
-  SocketMode Integer
-  UnixUserIdentifier Integer
-  SystemPrincipal String
-  EngineIdentifier String
-  HostName String
-  NetworkPeer String
-  ComponentInstanceName String
+  MessageRecipient.String
+  MessageSender.String
+  MessageBody.String
+  MessageSlot.Integer
+  TimestampNanos.Integer
+  WirePath.String
+  SocketMode.Integer
+  UnixUserIdentifier.Integer
+  SystemPrincipal.String
+  EngineIdentifier.String
+  HostName.String
+  NetworkPeer.String
+  ComponentInstanceName.String
 
-  MessageKind [Send Inbox]
+  MessageKind.[Send Inbox]
 
-  ThreadName String
-  ThreadSelection [None (Named ThreadName)]
+  ThreadName.String
+  ThreadSelection.[None Named.ThreadName]
 
-  MessageSubmission {
+  MessageSubmission.{
     MessageRecipient
     MessageKind
     MessageBody
     ThreadSelection
   }
 
-  Host HostName
-  OtherPersonaEngine {
+  Host.HostName
+  OtherPersonaEngine.{
     EngineIdentifier
     Host
   }
-  ConnectionClass [
+  ConnectionClass.[
     Owner
-    (NonOwnerUser UnixUserIdentifier)
-    (System SystemPrincipal)
-    (OtherPersona OtherPersonaEngine)
-    (Network NetworkPeer)
+    NonOwnerUser.UnixUserIdentifier
+    System.SystemPrincipal
+    OtherPersona.OtherPersonaEngine
+    Network.NetworkPeer
   ]
-  ComponentName [Mind Message Router Terminal Harness System Introspect Orchestrate Spirit]
-  InternalComponentInstanceOrigin {
+  ComponentName.[Mind Message Router Terminal Harness System Introspect Orchestrate Spirit]
+  InternalComponentInstanceOrigin.{
     ComponentName
     ComponentInstanceName
   }
-  MessageOrigin [
-    (Internal ComponentName)
-    (InternalComponentInstance InternalComponentInstanceOrigin)
-    (External ConnectionClass)
+  MessageOrigin.[
+    Internal.ComponentName
+    InternalComponentInstance.InternalComponentInstanceOrigin
+    External.ConnectionClass
   ]
 
-  StampedAt TimestampNanos
-  StampedMessageSubmission {
+  StampedAt.TimestampNanos
+  StampedMessageSubmission.{
     MessageSubmission
     MessageOrigin
     StampedAt
   }
 
-  IngressSocketPath WirePath
-  ComponentMessageIngress {
+  IngressSocketPath.WirePath
+  ComponentMessageIngress.{
     InternalComponentInstanceOrigin
     IngressSocketPath
     SocketMode
   }
 
-  SubmissionAcceptance MessageSlot
-  InboxQuery MessageRecipient
-  MessageOperationKind [Submit SubmitStamped QueryInbox AssignAgentIdentity BindAgentEndpoint QueryAgentRegistry QueryThread SubscribeThread QueryThreads]
+  SubmissionAcceptance.MessageSlot
+  InboxQuery.MessageRecipient
+  MessageOperationKind.[Submit SubmitStamped QueryInbox AssignAgentIdentity BindAgentEndpoint QueryAgentRegistry QueryThread SubscribeThread QueryThreads]
 
-  AgentIdentifier String
-  HarnessPid Integer
-  HarnessStartTime Integer
-  ResumeIdentity String
-  ResumeSelection [None (Resumed ResumeIdentity)]
+  AgentIdentifier.String
+  HarnessPid.Integer
+  HarnessStartTime.Integer
+  ResumeIdentity.String
+  ResumeSelection.[None Resumed.ResumeIdentity]
 
-  AgentEndpointKind [PtySocket HarnessSocket]
-  EndpointPath WirePath
-  AgentEndpoint {
+  AgentEndpointKind.[PtySocket HarnessSocket]
+  EndpointPath.WirePath
+  AgentEndpoint.{
     AgentEndpointKind
     EndpointPath
   }
-  EndpointSelection [None (Bound AgentEndpoint)]
-  AgentDeathMark [NotDead Killed]
+  EndpointSelection.[None Bound.AgentEndpoint]
+  AgentDeathMark.[NotDead Killed]
 
-  HarnessProcessPin {
+  HarnessProcessPin.{
     HarnessPid
     HarnessStartTime
   }
-  ProcessPinSelection [None (Pinned HarnessProcessPin)]
+  ProcessPinSelection.[None Pinned.HarnessProcessPin]
 
-  AgentIdentityAssignment {
+  AgentIdentityAssignment.{
     AgentIdentifier
     ProcessPinSelection
     ResumeSelection
   }
-  IdentityProvenance [Seated Reseated]
-  AssignedAgentIdentity {
+  IdentityProvenance.[Seated Reseated]
+  AssignedAgentIdentity.{
     AgentIdentifier
     IdentityProvenance
   }
 
-  AgentEndpointBinding {
+  AgentEndpointBinding.{
     AgentIdentifier
     AgentEndpoint
     HarnessPid
     HarnessStartTime
   }
-  BoundAgentEndpoint AgentIdentifier
+  BoundAgentEndpoint.AgentIdentifier
 
-  AgentRegistryQuery [All (ByAgent AgentIdentifier)]
-  AgentRegistryEntry {
+  AgentRegistryQuery.[All ByAgent.AgentIdentifier]
+  AgentRegistryEntry.{
     AgentIdentifier
     EndpointSelection
     ResumeSelection
     AgentDeathMark
     ProcessPinSelection
   }
-  AgentRegistryListing { Entries.(Vector AgentRegistryEntry) }
-  AgentRegistryRejectionReason [UnknownAgentIdentifier StoreRejected]
-  AgentRegistryRejection AgentRegistryRejectionReason
-  InboxEntry {
+  AgentRegistryListingReply.{ Entries.Vector.AgentRegistryEntry }
+  AgentRegistryRejectionReason.[UnknownAgentIdentifier StoreRejected]
+  AgentRegistryRejection.AgentRegistryRejectionReason
+  InboxEntry.{
     MessageSlot
     MessageSender
     MessageBody
     ThreadSelection
     StampedAt
   }
-  InboxListing { Messages.(Vector InboxEntry) }
-  SubmissionRejectionReason [StoreRejected RecipientNotFound]
-  SubmissionRejection SubmissionRejectionReason
+  InboxListingReply.{ Messages.Vector.InboxEntry }
+  SubmissionRejectionReason.[StoreRejected RecipientNotFound]
+  SubmissionRejection.SubmissionRejectionReason
 
-  ErrorMessage String
-  ErrorReport ErrorMessage
+  ErrorMessage.String
+  ErrorReport.ErrorMessage
 
-  ThreadQuery ThreadName
-  RepositoryName String
-  FeatureBranchName String
-  ThreadRelation {
+  ThreadQuery.ThreadName
+  RepositoryName.String
+  FeatureBranchName.String
+  ThreadRelation.{
     RepositoryName
     FeatureBranchName
   }
-  ThreadRelationSelection [None (Related ThreadRelation)]
-  ParticipantName String
-  ThreadSubscription {
+  ThreadRelationSelection.[None Related.ThreadRelation]
+  ParticipantName.String
+  ThreadSubscription.{
     ThreadName
     ParticipantName
     ThreadRelationSelection
   }
-  ThreadSubscriptionAcknowledgment {
+  ThreadSubscriptionAcknowledgment.{
     ThreadName
     ParticipantName
   }
-  ThreadEntry {
+  ThreadEntry.{
     MessageSlot
     MessageSender
     MessageBody
     StampedAt
   }
-  Participants (Vector ParticipantName)
-  ThreadEntries (Vector ThreadEntry)
-  ThreadContents {
+  Participants.Vector.ParticipantName
+  ThreadEntries.Vector.ThreadEntry
+  ThreadContents.{
     ThreadName
     ThreadRelationSelection
     Participants
     ThreadEntries
   }
-  ThreadIndexQuery [All]
-  MessageCount Integer
-  ThreadSummary {
+  ThreadIndexQuery.[All]
+  MessageCount.Integer
+  ThreadSummary.{
     ThreadName
     ThreadRelationSelection
     Participants
     MessageCount
   }
-  ThreadIndexEntries { Threads.(Vector ThreadSummary) }
-  ThreadRejectionReason [UnknownThread StoreRejected]
-  ThreadRejection ThreadRejectionReason
+  ThreadIndexEntries.{ Threads.Vector.ThreadSummary }
+  ThreadRejectionReason.[UnknownThread StoreRejected]
+  ThreadRejection.ThreadRejectionReason
 
-  DependencyKind [Router Mind Harness Terminal]
-  ResourceKind [MessageSocket RouterSocket PeerCredentials Store]
-  MessageUnimplementedReason [
+  DependencyKind.[Router Mind Harness Terminal]
+  ResourceKind.[MessageSocket RouterSocket PeerCredentials Store]
+  MessageUnimplementedReason.[
     NotInPrototypeScope
-    (DependencyMissing DependencyKind)
-    (ResourceUnavailable ResourceKind)
+    DependencyMissing.DependencyKind
+    ResourceUnavailable.ResourceKind
   ]
-  MessageRequestUnimplemented {
+  MessageRequestUnimplementedReply.{
     MessageOperationKind
     MessageUnimplementedReason
   }
 
-  OwnerIdentity [
-    (UnixUser UnixUserIdentifier)
-    (System SystemPrincipal)
+  OwnerIdentity.[
+    UnixUser.UnixUserIdentifier
+    System.SystemPrincipal
   ]
 
-  MessageSocketPath WirePath
-  MessageSocketMode SocketMode
-  SupervisionSocketPath WirePath
-  SupervisionSocketMode SocketMode
-  RouterSocketPath WirePath
-  MessageDaemonConfiguration {
+  MessageSocketPath.WirePath
+  MessageSocketMode.SocketMode
+  SupervisionSocketPath.WirePath
+  SupervisionSocketMode.SocketMode
+  RouterSocketPath.WirePath
+  MessageDaemonConfiguration.{
     MessageSocketPath
     MessageSocketMode
     SupervisionSocketPath
     SupervisionSocketMode
     RouterSocketPath
-    ComponentIngresses.(Vector ComponentMessageIngress)
+    ComponentIngresses.Vector.ComponentMessageIngress
     OwnerIdentity
   }
 }
+{}
+{}

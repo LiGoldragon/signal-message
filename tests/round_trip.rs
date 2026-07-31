@@ -4,29 +4,28 @@
 //! Each test names exactly what shape it pins down; per the
 //! "blunt test names" convention.
 
-use nota::{NotaDecode, NotaEncode, NotaSource};
+use dotos::{DotosDecode, DotosEncode, DotosSource};
 use signal_frame::{
-    ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
-    SignalOperationHeads, SubReply,
+    ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, RootCode,
+    SessionEpoch, SignalOperationHeads, SubReply, VariantCode, WireRoute,
 };
 use signal_message::{
     AgentDeathMark, AgentEndpoint, AgentEndpointBinding, AgentEndpointKind, AgentIdentifier,
     AgentIdentityAssignment, AgentRegistryEntry, AgentRegistryListing, AgentRegistryRejection,
     AgentRegistryRejectionReason, AssignedAgentIdentity, ComponentInstanceName,
     ComponentMessageIngress, ComponentName, ConnectionClass, DependencyKind, EndpointPath,
-    EndpointSelection, HarnessPid, HarnessProcessPin, HarnessStartTime, IdentityProvenance,
-    ProcessPinSelection, ResumeIdentity,
-    ResumeSelection,
-    Frame, FrameBody, InboxEntry, InboxListing, InboxQuery, Input, InternalComponentInstanceOrigin,
-    MessageBody, MessageDaemonConfiguration, MessageDaemonConfigurationParts, MessageKind,
-    MessageOperationKind, MessageOrigin, MessageRecipient, MessageRequestUnimplemented,
-    MessageSender, MessageSlot, MessageSubmission, MessageUnimplementedReason, Output,
-    OwnerIdentity, ParticipantName, Participants, ResourceKind, SocketMode,
-    StampedAt, StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection,
-    SubmissionRejectionReason, ThreadContents, ThreadEntries, ThreadEntry, ThreadIndexEntries,
-    ThreadIndexQuery, ThreadName, ThreadQuery, ThreadRejection, ThreadRejectionReason,
-    ThreadRelation, ThreadRelationSelection, ThreadSelection, ThreadSubscription,
-    ThreadSubscriptionAcknowledgment, ThreadSummary, TimestampNanos, UnixUserIdentifier, WirePath,
+    EndpointSelection, Frame, FrameBody, HarnessPid, HarnessProcessPin, HarnessStartTime,
+    IdentityProvenance, InboxEntry, InboxListing, InboxQuery, Input,
+    InternalComponentInstanceOrigin, MessageBody, MessageDaemonConfiguration,
+    MessageDaemonConfigurationParts, MessageKind, MessageOperationKind, MessageOrigin,
+    MessageRecipient, MessageRequestUnimplemented, MessageSender, MessageSlot, MessageSubmission,
+    MessageUnimplementedReason, Output, OwnerIdentity, ParticipantName, Participants,
+    ProcessPinSelection, ResourceKind, ResumeIdentity, ResumeSelection, SocketMode, StampedAt,
+    StampedMessageSubmission, SubmissionAcceptance, SubmissionRejection, SubmissionRejectionReason,
+    ThreadContents, ThreadEntries, ThreadEntry, ThreadIndexEntries, ThreadIndexQuery, ThreadName,
+    ThreadQuery, ThreadRejection, ThreadRejectionReason, ThreadRelation, ThreadRelationSelection,
+    ThreadSelection, ThreadSubscription, ThreadSubscriptionAcknowledgment, ThreadSummary,
+    TimestampNanos, UnixUserIdentifier, WirePath,
 };
 
 fn exchange() -> ExchangeIdentifier {
@@ -79,17 +78,23 @@ fn acceptance(slot: u64) -> SubmissionAcceptance {
 }
 
 fn request_frame(request: Input) -> Frame {
-    Frame::new(FrameBody::Request {
-        exchange: exchange(),
-        request: request.into_request(),
-    })
+    Frame::new(
+        WireRoute::new(RootCode::new(0), VariantCode::new(0)),
+        FrameBody::Request {
+            exchange: exchange(),
+            request: request.into_request(),
+        },
+    )
 }
 
 fn reply_frame(reply: Output) -> Frame {
-    Frame::new(FrameBody::Reply {
-        exchange: exchange(),
-        reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
-    })
+    Frame::new(
+        WireRoute::new(RootCode::new(0), VariantCode::new(0)),
+        FrameBody::Reply {
+            exchange: exchange(),
+            reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
+        },
+    )
 }
 
 fn decode_single_request(frame: Frame) -> Input {
@@ -112,13 +117,13 @@ fn decode_single_reply(frame: Frame) -> Output {
     }
 }
 
-fn round_trip_nota<Value>(value: Value, expected: &str)
+fn round_trip_dotos<Value>(value: Value, expected: &str)
 where
-    Value: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
+    Value: DotosEncode + DotosDecode + PartialEq + std::fmt::Debug,
 {
-    let text = value.to_nota();
+    let text = value.to_dotos();
     assert_eq!(text, expected);
-    let recovered = NotaSource::new(&text).parse::<Value>().expect("decode");
+    let recovered = DotosSource::new(&text).parse::<Value>().expect("decode");
     assert_eq!(recovered, value);
 }
 
@@ -318,12 +323,12 @@ fn message_request_variants_declare_contract_local_operation_heads() {
 }
 
 #[test]
-fn message_operation_kind_round_trips_through_nota_text() {
-    round_trip_nota(MessageOperationKind::Submit, "Submit");
+fn message_operation_kind_round_trips_through_dotos_text() {
+    round_trip_dotos(MessageOperationKind::Submit, "Submit");
 }
 
 #[test]
-fn message_submission_request_round_trips_through_nota_text() {
+fn message_submission_request_round_trips_through_dotos_text() {
     let request = Input::Submit(MessageSubmission {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
@@ -331,7 +336,7 @@ fn message_submission_request_round_trips_through_nota_text() {
         thread_selection: ThreadSelection::None,
     });
 
-    round_trip_nota(request, "(Submit (designer Send [stack test] None))");
+    round_trip_dotos(request, "Submit.{designer Send (stack test) None}");
 }
 
 #[test]
@@ -343,7 +348,7 @@ fn message_submission_without_explicit_thread_round_trips_as_typed_none_slot() {
         thread_selection: ThreadSelection::None,
     };
 
-    round_trip_nota(submission, "(designer Send [no thread] None)");
+    round_trip_dotos(submission, "{designer Send (no thread) None}");
 }
 
 #[test]
@@ -371,7 +376,7 @@ fn message_submission_with_named_thread_round_trips_through_length_prefixed_fram
 }
 
 #[test]
-fn message_submission_with_named_thread_round_trips_through_nota_text() {
+fn message_submission_with_named_thread_round_trips_through_dotos_text() {
     let submission = MessageSubmission {
         message_recipient: recipient("designer"),
         message_kind: MessageKind::Send,
@@ -379,22 +384,22 @@ fn message_submission_with_named_thread_round_trips_through_nota_text() {
         thread_selection: ThreadSelection::Named(ThreadName::new(text("launch-plan"))),
     };
 
-    round_trip_nota(
+    round_trip_dotos(
         submission,
-        "(designer Send [thread test] (Named launch-plan))",
+        "{designer Send (thread test) Named.launch-plan}",
     );
 }
 
 #[test]
-fn stamped_message_submission_request_round_trips_through_nota_text() {
+fn stamped_message_submission_request_round_trips_through_dotos_text() {
     let request = Input::SubmitStamped(StampedMessageSubmission {
         message_submission: submission("designer", "stack test"),
         message_origin: MessageOrigin::External(ConnectionClass::Owner),
         stamped_at: TimestampNanos::new(99).into(),
     });
 
-    let text = request.to_nota();
-    let recovered = NotaSource::new(&text)
+    let text = request.to_dotos();
+    let recovered = DotosSource::new(&text)
         .parse::<Input>()
         .expect("decode request");
 
@@ -404,14 +409,14 @@ fn stamped_message_submission_request_round_trips_through_nota_text() {
 }
 
 #[test]
-fn submission_accepted_reply_round_trips_through_nota_text() {
+fn submission_accepted_reply_round_trips_through_dotos_text() {
     let reply = Output::SubmissionAccepted(acceptance(7));
 
-    round_trip_nota(reply, "(SubmissionAccepted 7)");
+    round_trip_dotos(reply, "SubmissionAccepted.7");
 }
 
 #[test]
-fn message_daemon_configuration_round_trips_through_nota_text() {
+fn message_daemon_configuration_round_trips_through_dotos_text() {
     let configuration = MessageDaemonConfiguration::from(MessageDaemonConfigurationParts {
         message_socket_path: path("/run/persona/X/message.sock"),
         message_socket_mode: SocketMode::new(0o660),
@@ -429,14 +434,14 @@ fn message_daemon_configuration_round_trips_through_nota_text() {
         owner_identity: OwnerIdentity::UnixUser(UnixUserIdentifier::new(1000)),
     });
 
-    let text = configuration.to_nota();
-    let recovered = NotaSource::new(&text)
+    let text = configuration.to_dotos();
+    let recovered = DotosSource::new(&text)
         .parse::<MessageDaemonConfiguration>()
         .expect("decode configuration");
 
     assert_eq!(recovered, configuration);
     assert!(text.contains("/run/persona/X/message.sock"));
-    assert!(text.contains("(Harness initiator)"));
+    assert!(text.contains("{Harness initiator}"));
 }
 
 #[test]
@@ -476,8 +481,8 @@ fn unimplemented_reason_variants_are_typed_not_strings() {
             message_operation_kind: MessageOperationKind::QueryInbox,
             message_unimplemented_reason: reason,
         });
-        let text = reply.to_nota();
-        let recovered = NotaSource::new(&text)
+        let text = reply.to_dotos();
+        let recovered = DotosSource::new(&text)
             .parse::<Output>()
             .expect("decode reply");
         assert_eq!(recovered, reply);
@@ -590,8 +595,8 @@ fn agent_registry_rejection_reasons_are_typed_not_strings() {
 
     for reason in reasons {
         let reply = Output::AgentRegistryRejected(AgentRegistryRejection::new(reason));
-        let text = reply.to_nota();
-        let recovered = NotaSource::new(&text)
+        let text = reply.to_dotos();
+        let recovered = DotosSource::new(&text)
             .parse::<Output>()
             .expect("decode reply");
         assert_eq!(recovered, reply);
@@ -676,9 +681,8 @@ fn thread_index_listing_round_trips_with_summaries() {
 
 #[test]
 fn thread_rejection_and_error_replies_are_typed() {
-    let rejection = Output::ThreadRejected(ThreadRejection::new(
-        ThreadRejectionReason::UnknownThread,
-    ));
+    let rejection =
+        Output::ThreadRejected(ThreadRejection::new(ThreadRejectionReason::UnknownThread));
     let error = Output::Error(signal_message::ErrorReport::new(
         signal_message::ErrorMessage::new("store rejected the write".to_owned()),
     ));

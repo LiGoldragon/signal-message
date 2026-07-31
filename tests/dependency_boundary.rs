@@ -26,23 +26,23 @@ fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
         "signal_channel! is deprecated; signal-message is schema-derived",
     );
     assert!(
-        cargo_toml.contains("default = [\"nota-text\"]"),
-        "direct signal-message users keep the NOTA projection by default",
+        cargo_toml.contains("default = [\"dotos-text\"]"),
+        "direct signal-message users keep the DOTOS projection by default",
     );
     assert!(
-        cargo_toml.contains("nota-text = [\"dep:nota\", \"signal-frame/nota-text\"]"),
-        "generated NOTA traits and signal-frame NOTA support are gated through the local feature",
+        cargo_toml.contains("dotos-text = [\"dep:dotos\", \"signal-frame/dotos-text\"]"),
+        "generated DOTOS traits and signal-frame DOTOS support are gated through the local feature",
     );
 }
 
 #[test]
-fn binary_only_dependency_tree_does_not_contain_nota() {
+fn binary_only_dependency_tree_does_not_contain_dotos() {
     let manifest = CargoManifest::from_environment();
     let tree = manifest.cargo_tree(&["--edges", "normal", "--no-default-features"]);
 
     assert!(
-        !tree.contains("nota") && !tree.contains("nota"),
-        "binary-only dependency tree must not contain nota:\n{tree}"
+        !tree.contains("dotos") && !tree.contains("dotos"),
+        "binary-only dependency tree must not contain dotos:\n{tree}"
     );
 }
 

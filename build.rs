@@ -1,10 +1,12 @@
-use schema_rust::build::ContractCrateBuild;
+use protos::WireContractFamily;
+use schema_rust::build::{ContractCrateBuild, CrateName, SchemaVersion, UpdateEnvironmentVariable};
 
 fn main() {
     ContractCrateBuild::from_environment(
-        "signal-message",
-        "0.5.0",
-        "SIGNAL_MESSAGE_UPDATE_SCHEMA_ARTIFACTS",
+        CrateName::new("signal-message"),
+        SchemaVersion::new("0.5.0"),
+        UpdateEnvironmentVariable::new("SIGNAL_MESSAGE_UPDATE_SCHEMA_ARTIFACTS"),
+        WireContractFamily::SignalSpirit,
     )
     .expect_fresh();
 }
