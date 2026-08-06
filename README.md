@@ -1,54 +1,20 @@
 # signal-message
 
-The Signal contract for Message ingress. It carries the client-message
-relation (`message` CLI to `message-daemon`) and the router-ingress
-relation (`message-daemon` to `router`) in one root family.
+The ordinary Message ingress Interface. It carries the client-to-message and
+message-to-router relations in one typed family.
 
-Read `src/lib.rs` for the public interface — two enums
-(`Input`, `Output`) generated from `schema/lib.schema` by
-`schema-rust`. The variants ARE the messages this channel
-carries.
+`ethos/interface.ethos` is the sole authored Interface projection. The build
+assembles it as an authority-approved transaction and checks the committed
+strict Rust projection in `src/schema/lib/generated.rs`. Every Type is exposed
+only by its encoded identity. The current bootstrap stage keeps `Input` and
+`Output` as explicit handwritten roles over those Types; Dotos retains the
+human domain names at the textual boundary.
 
-## Quick reference
+The request role contains `Submit`, `SubmitStamped`, `QueryInbox`, agent
+registry operations, and thread operations. The reply role contains the
+corresponding accepted, rejected, listing, and unimplemented outcomes. Runtime
+provenance stamping, persistence, routing, sockets, and supervision belong to
+the consuming components.
 
-```rust
-use signal_frame::{
-    ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
-};
-use signal_message::{
-    Frame, FrameBody, MessageBody, MessageKind, MessageRecipient,
-    Input, MessageSubmission, ThreadSelection,
-};
-
-let exchange = ExchangeIdentifier::new(
-    SessionEpoch::new(1),
-    ExchangeLane::Connector,
-    LaneSequence::first(),
-);
-let request = Input::Submit(MessageSubmission {
-    message_recipient: MessageRecipient::new(String::from("designer")),
-    message_kind: MessageKind::Send,
-    message_body: MessageBody::new(String::from("stack test")),
-    // Optionality is a typed positional slot, never an omitted field:
-    // `ThreadSelection::None` for the default derived thread, or
-    // `ThreadSelection::Named(ThreadName::new(..))` for an explicit thread.
-    thread_selection: ThreadSelection::None,
-});
-let frame = Frame::new(FrameBody::Request {
-    exchange,
-    request: request.into_request(),
-});
-let bytes = frame.encode_length_prefixed()?;
-// send bytes on message.sock; message-daemon stamps before router.sock
-```
-
-The request operation heads are contract-local: `Submit`,
-`SubmitStamped`, and `QueryInbox`. Sema classification labels such as
-`Assert` and `Match` are daemon-side observation labels, not wire roots.
-
-## See also
-
-- `ARCHITECTURE.md` — channel role + boundaries
-- `~/primary/skills/contract-repo.md` — contract-repo discipline
-- `signal-frame` — kernel that supplies the request/reply frame envelope
-- `schema/lib.schema` — authored contract vocabulary
+Run `nix --option substituters https://cache.nixos.org flake check
+--print-build-logs` for the complete proof matrix.

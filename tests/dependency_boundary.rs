@@ -1,82 +1,76 @@
-#[test]
-fn message_contract_is_schema_derived_without_retired_helper_dependencies() {
-    let cargo_toml = include_str!("../Cargo.toml");
-    let source = include_str!("../src/lib.rs");
+use std::process::Command;
 
-    assert!(
-        cargo_toml.contains("schema-rust"),
-        "schema-rust owns generated contract emission",
-    );
-    assert!(
-        cargo_toml
-            .lines()
-            .any(|line| line.trim() == "build        = \"build.rs\""),
-        "contract artifacts must be generated from schema/lib.schema",
-    );
-    assert!(
-        !cargo_toml.contains("signal-engine-management"),
-        "wire contracts must not drag old engine-management helper types forward",
-    );
-    assert!(
-        !cargo_toml.contains("signal-persona-origin"),
-        "message origin vocabulary is schema-local until a schema-derived shared origin contract exists",
-    );
-    assert!(
-        !source.contains("signal_channel!"),
-        "signal_channel! is deprecated; signal-message is schema-derived",
-    );
-    assert!(
-        cargo_toml.contains("default = [\"dotos-text\"]"),
-        "direct signal-message users keep the DOTOS projection by default",
-    );
-    assert!(
-        cargo_toml.contains("dotos-text = [\"dep:dotos\", \"signal-frame/dotos-text\"]"),
-        "generated DOTOS traits and signal-frame DOTOS support are gated through the local feature",
-    );
+#[test]
+fn runtime_tree_excludes_bootstrap_and_retired_crates() {
+    let output = Command::new("cargo")
+        .args(["tree", "--edges", "normal", "--no-default-features"])
+        .output()
+        .expect("run cargo tree");
+    assert!(output.status.success(), "status: {:?}", output.status);
+    let tree = String::from_utf8(output.stdout).expect("dependency tree");
+    for forbidden in [
+        "core-ethos",
+        "name-table",
+        "protos",
+        "rust-logos",
+        "schema-language",
+        "schema-rust",
+        "sema-translator",
+        "signal-sema-translator",
+        "structural-codec",
+    ] {
+        assert!(
+            !tree.contains(forbidden),
+            "runtime contains {forbidden}:\n{tree}"
+        );
+    }
 }
 
 #[test]
-fn binary_only_dependency_tree_does_not_contain_dotos() {
-    let manifest = CargoManifest::from_environment();
-    let tree = manifest.cargo_tree(&["--edges", "normal", "--no-default-features"]);
-
-    assert!(
-        !tree.contains("dotos") && !tree.contains("dotos"),
-        "binary-only dependency tree must not contain dotos:\n{tree}"
-    );
+fn build_tree_has_one_corrected_schema_rust() {
+    let output = Command::new("cargo")
+        .args(["tree", "--edges", "build", "--no-default-features"])
+        .output()
+        .expect("run cargo tree");
+    assert!(output.status.success(), "status: {:?}", output.status);
+    let tree = String::from_utf8(output.stdout).expect("dependency tree");
+    assert_eq!(tree.matches("schema-rust v0.15.0").count(), 1, "{tree}");
+    assert!(tree.contains("schema-rust.git?rev=9e36587c85bd69357e9042729ba2df0052799756#9e36587c"));
+    assert!(!tree.contains("schema-language"), "{tree}");
 }
 
-struct CargoManifest {
-    path: std::path::PathBuf,
-}
-
-impl CargoManifest {
-    fn from_environment() -> Self {
-        Self {
-            path: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"),
+#[test]
+fn historical_schema_surface_is_absent() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut directories = vec![root.to_path_buf()];
+    while let Some(directory) = directories.pop() {
+        for entry in std::fs::read_dir(directory).expect("read repository directory") {
+            let path = entry.expect("read repository entry").path();
+            if path.ends_with("target") || path.ends_with(".git") || path.ends_with(".jj") {
+                continue;
+            }
+            if path.is_dir() {
+                directories.push(path);
+            } else {
+                assert_ne!(
+                    path.extension().and_then(std::ffi::OsStr::to_str),
+                    Some("schema"),
+                    "historical schema input survived at {}",
+                    path.display(),
+                );
+            }
         }
     }
-
-    fn cargo_tree(&self, arguments: &[&str]) -> String {
-        let output = std::process::Command::new("cargo")
-            .arg("tree")
-            .arg("--manifest-path")
-            .arg(self.path())
-            .args(arguments)
-            .output()
-            .expect("run cargo tree");
-
-        assert!(
-            output.status.success(),
-            "cargo tree failed\nstdout:\n{}\nstderr:\n{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-
-        String::from_utf8(output.stdout).expect("cargo tree stdout is utf8")
-    }
-
-    fn path(&self) -> &std::path::Path {
-        self.path.as_path()
+    for source in [
+        include_str!("../Cargo.toml"),
+        include_str!("../build.rs"),
+        include_str!("../src/lib.rs"),
+    ] {
+        for forbidden in [".schema", "schema-dir", "CargoSchemaMetadata"] {
+            assert!(
+                !source.contains(forbidden),
+                "historical token {forbidden} survived"
+            );
+        }
     }
 }

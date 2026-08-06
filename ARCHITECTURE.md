@@ -1,298 +1,63 @@
 # ARCHITECTURE — signal-message
 
-The Signal contract for the engine's message-ingress path. It owns
-**two named relations sharing one root family** (`Input` / `Output`),
-wired across two different sockets.
+`signal-message` owns the ordinary Interface vocabulary shared by two Message
+relations:
 
-## Overview and direction
+- a client or component submits an unstamped message to the Message receiver;
+- Message supplies the accepted-ingress origin and timestamp, then submits the
+  stamped message to Router.
 
-`signal-message` is the **ordinary peer-callable wire contract** for message
-ingress: the typed vocabulary two relations speak. The client-message relation
-carries a `message` CLI or component client submitting a message; the
-router-ingress relation carries the `message` daemon forwarding a
-provenance-stamped submission to `router`. Both share the one root family
-(`Input` / `Output`). Routing policy, delivery state, channel authority, and
-the ingress daemon's runtime all live elsewhere (`router`, `message`); this
-crate is the typed vocabulary, not the runtime.
+The Interface is self-contained. Its message, origin, agent-registry, thread,
+configuration, acceptance, and rejection Types are local relation vocabulary.
+Consumers project them into their own runtime state at the boundary.
 
-The wire vocabulary is contract-local: the daemon lowers these public
-operations into component-local commands; Sema classification happens at
-observation time, not on the wire. Operation roots are domain verbs in verb
-form (`Submit`, `SubmitStamped`, `QueryInbox`), not Sema class words; reply
-success variants are past-tense / outcome-named matching the operation, and
-rejections are typed (`SubmissionRejected`) carrying a closed-enum reason.
-Payload record names are the domain nouns the operation carries
-(`MessageSubmission`, `StampedMessageSubmission`, `InboxQuery`), not `Request`,
-`Data`, or generic containers.
+## Authority and projection
 
-## Three-layer model
+`ethos/interface.ethos` is a role-free `Interface.{1 0 0}` document. The
+producer-owned bootstrap manifest records the authority identity, grammar
+seats, canonical order, and opaque declaration identities. `build.rs`
+assembles the text with that authority state and asks schema-rust 0.15 for the
+strict Rust Logos projection. Freshness is checked on every build.
 
-**Layer 1 — Contract Operations on the wire (this crate).** Drop the
-Sema-shaped wrappers entirely. The contract-local public operations are
-`Submit(MessageSubmission)`, `SubmitStamped(StampedMessageSubmission)`, and
-`QueryInbox(InboxQuery)`. The cross-contract reuse pattern applies:
-`Submit` here means "submit a message for routing" while `Submit` in
-`signal-mind` means "submit a thought to the graph" — both
-legitimate per the contract-locality principle.
+The generated artifact defines encoded Types only. Human spellings remain
+textual metadata used by Dotos. Rust consumers use the encoded coordinates,
+which makes identity independent from a current spelling, source position, or
+implementation substrate.
 
-**Layer 2 — Component Commands (message daemon).** The
-message daemon owns its typed Command enum (e.g.
-`MessageCommand::RecordSubmission`,
-`MessageCommand::StampOrigin`,
-`MessageCommand::ReadInbox`) plus a `CommandExecutor`. Lowering from
-contract operation (`Submit`/`SubmitStamped`/`QueryInbox`) to commands
-happens in the daemon, not in this contract.
+## Current behavior slice
 
-**Layer 3 — Sema classification (signal-sema).** Each Component
-Command projects to a payloadless `SemaOperation` class via
-`ToSemaOperation`. The daemon emits the class label at observation
-publish time.
+Logos does not yet express the operational slice required by this contract.
+`src/schema/lib/behavior.rs` therefore seats structural archive and Dotos
+behavior by hand and defines the `Input` and `Output` roles explicitly. This is
+canonical bootstrap behavior, not a second Type vocabulary.
 
-**Frame layer.** This crate uses `signal-frame`, not `signal-core`.
+The request role has nine ordered routes and the reply role has thirteen. Both
+are carried by the allocated Signal frame contract at wire revision 2. Every
+route is witnessed through frame bytes; representative Dotos witnesses ensure
+that human-facing role names remain legible while Rust Type names stay strict.
 
-```text
-Relation A — Message ingress
-  endpoint:   message CLI or component client  →  message (receiver)
-  sockets:    message.sock for owner/external clients
-              message-ingress/<instance>.sock for manager-created
-              component-instance clients
-  legal payloads (request):   MessageSubmission | InboxQuery
-  legal payloads (reply):     SubmissionAccepted | SubmissionRejected | InboxListing | MessageRequestUnimplemented
+## Boundaries
 
-Relation B — Router ingress
-  endpoint:   message (sender)         →  router (receiver)
-  socket:     router.sock (mode 0600)
-  legal payloads (request):   StampedMessageSubmission
-  legal payloads (reply):     SubmissionAccepted | SubmissionRejected | MessageRequestUnimplemented
-```
+This repository owns Type identity, role legality, Dotos structure, archive
+shape, and the Signal frame binding. It owns no actors, sockets, daemon state,
+routing policy, persistence policy, process supervision, or transport retry.
 
-When a user runs `message "(Send designer [hi])"` through the owner
-ingress:
-
-1. `message` CLI constructs an `Input::Submit(...)`, encodes it as a
-   length-prefixed Signal frame, writes to
-   `message.sock`.
-2. `message` decodes the frame, mints
-   `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED on the
-   peer connection, packages the submission + origin + ingress
-   timestamp as `StampedMessageSubmission`, and forwards it to
-   `router.sock`.
-3. `router` accepts the stamped submission, persists a
-   message slot with router-minted commit time, and replies with
-   `SubmissionAccepted(slot)` or `SubmissionRejected(reason)`.
-4. The daemon forwards the reply back to the CLI client.
-
-When a supervised component uses its manager-created ingress socket, the
-payload shape is still `MessageSubmission`; the accepted socket chooses
-the origin. The component client does **not** send its own sender or origin
-in-band. `message` stamps
-`MessageOrigin::InternalComponentInstance(...)` from the
-`ComponentMessageIngress` entry configured by the engine manager.
-
-**Payload-by-payload legality**: `MessageSubmission` is legal only on
-Relation A (the daemon may not relay a plain `MessageSubmission` to
-router without stamping it). `StampedMessageSubmission` is legal only
-on Relation B (the CLI may not construct a stamped submission since
-it does not own a `MessageOrigin` mint). Witnesses enforce both rules.
-
-## Record source
-
-This contract imports no manager-domain records. The payloads
-(`MessageSubmission`, `SubmissionAcceptance`, `StampedMessageSubmission`,
-etc.) are defined in this crate because they are the channel's *interface
-vocabulary*, not records that travel beyond this channel. `MessageOrigin`
-(embedded in `StampedMessageSubmission`) is defined locally in the schema
-until a shared origin vocabulary exists as a schema-derived contract. Daemons
-project these local wire nouns into any internal provenance/runtime nouns at
-their boundary.
-
-(If a payload turns out to belong to another relation, make or update the
-relation-specific `signal-*` contract for that relation. Do not lift
-message-channel payloads into manager contract crates; engine-management
-crates are not relation buckets.)
-
-## Messages
-
-Closed enums generated from `schema/lib.schema`:
-
-```
-Input                       Output
-├─ Submit                    ├─ SubmissionAccepted
-├─ SubmitStamped             ├─ SubmissionRejected { reason }
-└─ QueryInbox                ├─ InboxListing
-                              └─ MessageRequestUnimplemented(MessageUnimplementedReason)
-```
-
-No `Unknown` variant; no string-tagged dispatch.
-
-### Sema-class projections (Layer 3)
-
-Each contract-local operation's daemon-side Component Command
-projects to a payloadless Sema class via `ToSemaOperation`:
-
-```text
-Submit                   -> Assert    (records new submission)
-SubmitStamped            -> Assert    (records stamped submission to router)
-QueryInbox               -> Match     (reads inbox)
-```
-
-`QueryInbox` is read-shaped. The daemon lowers it into Component
-Commands that include a `Match`-shaped read plan; the Sema class
-label is the daemon-side projection, not encoded into the wire
-frame. Query algebra such as projection or aggregation belongs in
-typed domain query payloads that the receiver lowers to its
-`CommandExecutor`, not in the wire envelope.
-
-### `MessageKind` — typed body semantics
-
-`MessageBody(String)` stays freeform; specificity grows via a closed
-`MessageKind` enum carried alongside the body.
-
-```text
-MessageKind (closed enum, prototype-scope)
-  | Send
-  | Inbox
-  -- future variants land as coordinated schema bumps
-```
-
-The `MessageSubmission` record carries `kind: MessageKind` so router and
-harness can dispatch on the typed kind rather than parsing the freeform body.
-
-### Skeleton honesty (Unimplemented reply)
-
-```text
-MessageUnimplementedReason
-  | NotInPrototypeScope
-  | DependencyMissing(DependencyKind)
-  | ResourceUnavailable(ResourceKind)
-```
-
-`MessageRequestUnimplemented(NotInPrototypeScope)` is the typed reply when a
-valid request variant has no built behavior yet.
-
-### Origin bridging — `StampedMessageSubmission`
-
-`message` owns the local provenance bridge. It accepts a plain
-`MessageSubmission`, derives the origin from the accepted ingress, and
-forwards a stamped record to router.
-
-Ingress classes:
-
-| Ingress | Origin minted by `message` | Who configures it |
-|---|---|---|
-| `message.sock` | `MessageOrigin::External(ConnectionClass)` from SO_PEERCRED / owner context | `MessageDaemonConfiguration.message_socket_path` |
-| `message-ingress/<instance>.sock` | `MessageOrigin::InternalComponentInstance(InternalComponentInstanceOrigin)` | `MessageDaemonConfiguration.component_ingresses` written by the engine manager |
-
-The bridge record:
-
-```text
-StampedMessageSubmission
-  | submission:  MessageSubmission
-  | origin:      MessageOrigin              (local wire provenance noun)
-  | stamped_at:  TimestampNanos             (ingress observation time;
-                                             minted by message)
-```
-
-Router accepts `StampedMessageSubmission` on its internal `router.sock` from
-`message`. Plain `MessageSubmission` is the shape on the CLI
-or component-client side (Relation A); the message component performs the
-stamping before forwarding on Relation B. Origin fields are never accepted
-from a Relation A caller.
-
-**Timestamp authority**: two distinct timestamps with distinct minters:
-
-| Field | Minted by | Meaning |
-|---|---|---|
-| `StampedMessageSubmission.stamped_at` | `message` | Ingress observation time. Audit/provenance. |
-| Router commit time (on the message slot when persisted) | `router` | Durable commit time. Source of truth for "when did this land in the engine." |
-
-Ingress timestamp is provenance; router commit time is durable message
-state. Router does not adopt the ingress timestamp as durable truth.
-
-## Constraints
-
-- `schema/lib.schema` is the source of truth. The checked-in generated
-  `src/schema/lib.rs` is a freshness-checked artifact, not handwritten
-  vocabulary. `signal_channel!` is not used here; published contracts migrate
-  to schema / schema-rust derived surfaces.
-- This crate carries only typed wire vocabulary, DOTOS codecs, generated
-  signal-frame codecs, and round-trip witnesses. No runtime code: no actors,
-  no tokio, no socket binding, no redb, no routing or delivery logic.
-- No durable message ledger here — both the CLI and the daemon are stateless
-  boundary surfaces; routing policy and delivery state stay in `router`.
-- Contract types derive DOTOS in this crate. Consumers do not carry shadow
-  types that re-derive the text surface.
-- Every operation and reply variant round-trips through both rkyv frames and
-  DOTOS text.
-- The two relations share one root family but address two different sockets
-  (`message.sock` for clients, `router.sock` for router ingress); the contract
-  names that split, not the socket binding.
-
-## Versioning
-
-The generated `Frame` carries the `signal-frame` protocol version; this
-contract inherits the kernel's version-skew guard.
-Schema-level changes here (adding/removing variants) are
-breaking and require a coordinated upgrade of
-`message` + `router`.
-
-## Examples
-
-```dotos
-;; the CLI invocation
-(Send designer [hi])
-
-;; produces this wire frame (length-prefix omitted for clarity)
-;; Frame { body: Request(Submit(MessageSubmission { recipient: MessageRecipient::new("designer".into()), body: MessageBody::new("hi".into()) })) }
-;; — the wire form carries the contract-local verb only; the daemon-
-;; side Component Command will project to Sema Assert at observation
-;; publish time.
-
-;; inbox reads carry the contract-local QueryInbox operation
-;; Frame { body: Request(QueryInbox(InboxQuery::new(MessageRecipient::new("designer".into())))) }
-;; — the daemon-side Component Command projects to Sema Match.
-```
-
-## Round trips
-
-Each variant of `Input` and `Output` has a frame round-trip
-test in `tests/round_trip.rs`. Representative DOTOS text witnesses cover
-`Submit(MessageSubmission)` and `SubmissionAcceptance`; root channel enum text
-codecs come from the generated schema-derived roots.
-
-Architectural-truth tests (per
-`~/primary/skills/architectural-truth-tests.md`) fire when:
-- A new variant is added without a round-trip test.
-- The Frame's encode/decode bytes don't match.
-- A consumer tries to dispatch on a variant that isn't in
-  the closed enum.
-
-## Non-ownership
-
-- No actors. No daemons. No `tokio`.
-- No transport (UDS path, reconnect, timeouts).
-- No routing logic. No persistence policy. No terminal logic.
+The orchestrator mints agent identity. Message records the durable consumer
+view and binds live endpoints. A thread is a sender-chosen name with an
+optional repository/feature relation; its participants arise from traffic and
+explicit subscription. Message origin is derived from the accepted ingress,
+never trusted from an ordinary client payload.
 
 ## Code map
 
+```text
+ethos/interface.ethos             authored Interface text
+src/bootstrap_manifest.rs         producer-owned authority seats
+build.rs                          verified assembly and strict projection
+src/schema/lib/generated.rs       checked encoded Type projection
+src/schema/lib/behavior.rs        handwritten bootstrap behavior and roles
+tests/interface_contract.rs       role-free source and strictness witnesses
+tests/message_roles.rs            role seating and order witnesses
+tests/round_trip.rs               byte and Dotos witnesses
+tests/dependency_boundary.rs      build/runtime boundary and source fence
 ```
-src/
-├── lib.rs    — generated schema re-export + methods on generated nouns
-└── schema/
-    ├── mod.rs
-    └── lib.rs — generated WireContract artifact
-schema/
-└── lib.schema — authored contract vocabulary
-tests/
-└── round_trip.rs — per-variant frame round trips + DOTOS text witnesses
-```
-
-## See also
-
-- `../message/ARCHITECTURE.md` — daemon-side direction (boundary surfaces,
-  provenance stamping, configuration).
-- `../signal-router/ARCHITECTURE.md` — the router observation contract this
-  path feeds.
-- `~/primary/skills/contract-repo.md` — contract repo discipline and naming
-  rules.
-- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
