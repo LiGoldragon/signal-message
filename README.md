@@ -16,5 +16,4 @@ corresponding accepted, rejected, listing, and unimplemented outcomes. Runtime
 provenance stamping, persistence, routing, sockets, and supervision belong to
 the consuming components.
 
-Run `nix --option substituters https://cache.nixos.org flake check
---print-build-logs` for the complete proof matrix.
+Run `nix flake check --print-build-logs` for the complete proof matrix.
