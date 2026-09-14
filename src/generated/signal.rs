@@ -456,6 +456,23 @@ pub struct PromptRelayDelivery {
     pub typed_prompt_envelope: TypedPromptEnvelope,
 }
 #[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum PromptTargetReadiness {
+    Ready,
+    Busy,
+    Dirty,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptDispatchRequest {
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub source_agent_identifier: SourceAgentIdentifier,
+    pub source_event_identifier: SourceEventIdentifier,
+    pub prompt_target_readiness: PromptTargetReadiness,
+}
+#[rustfmt::skip]
 pub type PromptRelayPermissions = std::vec::Vec<PromptRelayPermission>;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -560,6 +577,7 @@ pub enum Query {
     SubmitStamped(StampedMessageSubmission),
     SubmitPrompt(PromptRelaySubmission),
     ObservePromptReceipt(PromptReceiptObservation),
+    DispatchPrompt(PromptDispatchRequest),
     QueryInbox(InboxQuery),
     AssignAgentIdentity(AgentIdentityAssignment),
     BindAgentEndpoint(AgentEndpointBinding),
