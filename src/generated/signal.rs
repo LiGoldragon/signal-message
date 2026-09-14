@@ -52,6 +52,7 @@ pub enum MessageOperationKind {
     QueryInbox,
     QueryAgentRegistry,
     SubmitStamped,
+    SubmitPrompt,
     AssignAgentIdentity,
     BindAgentEndpoint,
 }
@@ -427,12 +428,68 @@ pub struct MessageDaemonConfiguration {
     pub supervision_socket_mode: SupervisionSocketMode,
     pub router_socket_path: RouterSocketPath,
     pub component_ingresses: ComponentIngresses,
+    pub prompt_relay_permissions: PromptRelayPermissions,
     pub owner_identity: OwnerIdentity,
 }
 #[rustfmt::skip]
 pub type MessageSender = String;
 #[rustfmt::skip]
 pub type RouterSocketPath = WirePath;
+#[rustfmt::skip]
+pub type SourceAgentIdentifier = String;
+#[rustfmt::skip]
+pub type DestinationAgentIdentifier = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptRelayPermission {
+    pub source_agent_identifier: SourceAgentIdentifier,
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+}
+#[rustfmt::skip]
+pub type PromptRelayPermissions = std::vec::Vec<PromptRelayPermission>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptRelaySubmission {
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub typed_prompt_envelope: TypedPromptEnvelope,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum PromptRelayDeliveryDisposition {
+    Pending,
+    Busy,
+    Dirty,
+    RecordedOnly,
+    DuplicatePending,
+    InFlight,
+    ByteAccepted,
+    RecipientObserved,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptRelayAcceptance {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub prompt_relay_delivery_disposition: PromptRelayDeliveryDisposition,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum PromptRelayRejectionReason {
+    RelayDisabled,
+    UnregisteredSource,
+    DestinationNotPermitted,
+    StoreRejected,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptRelayRejection {
+    pub prompt_relay_rejection_reason: PromptRelayRejectionReason,
+}
 #[rustfmt::skip]
 pub type ThreadName = String;
 #[rustfmt::skip]
@@ -484,6 +541,7 @@ pub struct TypedPromptEnvelope {
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
+    SubmitPrompt(PromptRelaySubmission),
     QueryInbox(InboxQuery),
     AssignAgentIdentity(AgentIdentityAssignment),
     BindAgentEndpoint(AgentEndpointBinding),
@@ -509,4 +567,6 @@ pub enum Response {
     ThreadSubscribed(ThreadSubscriptionAcknowledgment),
     ThreadIndexListing(ThreadIndexEntries),
     ThreadRejected(ThreadRejection),
+    PromptRelayAccepted(PromptRelayAcceptance),
+    PromptRelayRejected(PromptRelayRejection),
 }
