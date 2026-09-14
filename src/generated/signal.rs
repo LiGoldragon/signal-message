@@ -469,6 +469,7 @@ pub struct PromptRelaySubmission {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct PromptReceiptObservation {
     pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub source_agent_identifier: SourceAgentIdentifier,
     pub source_event_identifier: SourceEventIdentifier,
 }
 #[rustfmt::skip]
