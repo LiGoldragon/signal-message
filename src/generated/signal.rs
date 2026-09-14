@@ -447,6 +447,15 @@ pub struct PromptRelayPermission {
     pub destination_agent_identifier: DestinationAgentIdentifier,
 }
 #[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptRelayDelivery {
+    pub source_agent_identifier: SourceAgentIdentifier,
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub message_origin: MessageOrigin,
+    pub typed_prompt_envelope: TypedPromptEnvelope,
+}
+#[rustfmt::skip]
 pub type PromptRelayPermissions = std::vec::Vec<PromptRelayPermission>;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
