@@ -1,6 +1,9 @@
 use signal_message::{
-    ByteViewable, MessageBody, MessageKind, MessageRecipient, MessageSubmission, Query, Response,
-    Restorable, Signal, Signalizable, ThreadSelection,
+    ByteViewable, DestinationAgentIdentifier, DispatcherProcessId, DispatcherProcessStartTime,
+    MessageBody, MessageKind, MessageRecipient, MessageSubmission, PromptDeliveryHeader,
+    PromptDeliveryIdentity, PromptDeliveryPayloadLength, PromptDeliveryProtocolVersion, Query,
+    Response, Restorable, Signal, Signalizable, SourceAgentIdentifier, SourceEventIdentifier,
+    ThreadSelection,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -43,4 +46,45 @@ fn datom_round_trip_preserves_message_payload() {
         })
         .expect("actualize");
     assert_eq!(restored, query);
+}
+
+#[test]
+fn two_phase_prompt_delivery_contract_restores_from_fresh_peer_bytes() {
+    let identity = PromptDeliveryIdentity {
+        source_agent_identifier: SourceAgentIdentifier::from("sandbox-hook"),
+        destination_agent_identifier: DestinationAgentIdentifier::from("codex"),
+        source_event_identifier: SourceEventIdentifier::from("event-42"),
+    };
+    let header = PromptDeliveryHeader {
+        prompt_delivery_protocol_version: PromptDeliveryProtocolVersion::from(1),
+        prompt_delivery_identity: identity.clone(),
+        prompt_delivery_payload_length: PromptDeliveryPayloadLength::from(73),
+        dispatcher_process_id: DispatcherProcessId::from(4242),
+        dispatcher_process_start_time: DispatcherProcessStartTime::from(9001),
+    };
+    let query = Query::Header(header);
+    let outgoing = query.signalize().expect("archive two-phase header");
+    let incoming = Signal::<Query>::from(outgoing.bytes().to_vec());
+    assert_eq!(incoming.restore().expect("restore two-phase header"), query);
+
+    let query = Query::Reconcile(identity.clone());
+    let outgoing = query.signalize().expect("archive reconciliation");
+    let incoming = Signal::<Query>::from(outgoing.bytes().to_vec());
+    assert_eq!(incoming.restore().expect("restore reconciliation"), query);
+
+    for response in [
+        Response::HeaderAccepted(identity.clone()),
+        Response::HeaderRejected(identity.clone()),
+        Response::PayloadAbsent(identity.clone()),
+        Response::PayloadInProgress(identity.clone()),
+        Response::PayloadComplete(identity.clone()),
+        Response::RecipientObserved(identity.clone()),
+    ] {
+        let outgoing = response.signalize().expect("archive two-phase reply");
+        let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
+        assert_eq!(
+            incoming.restore().expect("restore two-phase reply"),
+            response
+        );
+    }
 }

@@ -55,6 +55,8 @@ pub enum MessageOperationKind {
     SubmitPrompt,
     AssignAgentIdentity,
     BindAgentEndpoint,
+    Header,
+    Reconcile,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -440,6 +442,32 @@ pub type SourceAgentIdentifier = String;
 #[rustfmt::skip]
 pub type DestinationAgentIdentifier = String;
 #[rustfmt::skip]
+pub type PromptDeliveryProtocolVersion = i64;
+#[rustfmt::skip]
+pub type PromptDeliveryPayloadLength = i64;
+#[rustfmt::skip]
+pub type DispatcherProcessId = i64;
+#[rustfmt::skip]
+pub type DispatcherProcessStartTime = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptDeliveryIdentity {
+    pub source_agent_identifier: SourceAgentIdentifier,
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub source_event_identifier: SourceEventIdentifier,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptDeliveryHeader {
+    pub prompt_delivery_protocol_version: PromptDeliveryProtocolVersion,
+    pub prompt_delivery_identity: PromptDeliveryIdentity,
+    pub prompt_delivery_payload_length: PromptDeliveryPayloadLength,
+    pub dispatcher_process_id: DispatcherProcessId,
+    pub dispatcher_process_start_time: DispatcherProcessStartTime,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct PromptRelayPermission {
@@ -578,6 +606,8 @@ pub enum Query {
     SubmitPrompt(PromptRelaySubmission),
     ObservePromptReceipt(PromptReceiptObservation),
     DispatchPrompt(PromptDispatchRequest),
+    Header(PromptDeliveryHeader),
+    Reconcile(PromptDeliveryIdentity),
     QueryInbox(InboxQuery),
     AssignAgentIdentity(AgentIdentityAssignment),
     BindAgentEndpoint(AgentEndpointBinding),
@@ -605,4 +635,10 @@ pub enum Response {
     ThreadRejected(ThreadRejection),
     PromptRelayAccepted(PromptRelayAcceptance),
     PromptRelayRejected(PromptRelayRejection),
+    HeaderAccepted(PromptDeliveryIdentity),
+    HeaderRejected(PromptDeliveryIdentity),
+    PayloadAbsent(PromptDeliveryIdentity),
+    PayloadInProgress(PromptDeliveryIdentity),
+    PayloadComplete(PromptDeliveryIdentity),
+    RecipientObserved(PromptDeliveryIdentity),
 }
