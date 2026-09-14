@@ -453,6 +453,34 @@ pub struct ThreadContents {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum PromptVariant {
+    HumanPrompt,
+    PeerMessage,
+    DeliveryReceipt,
+}
+#[rustfmt::skip]
+pub type SourceEventIdentifier = String;
+#[rustfmt::skip]
+pub type RawPromptText = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum PromptInterpretationSelection {
+    Interpreted(MessageBody),
+    None,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct TypedPromptEnvelope {
+    pub prompt_variant: PromptVariant,
+    pub source_event_identifier: SourceEventIdentifier,
+    pub raw_prompt_text: RawPromptText,
+    pub prompt_interpretation_selection: PromptInterpretationSelection,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
