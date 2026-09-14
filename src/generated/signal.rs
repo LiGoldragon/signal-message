@@ -458,6 +458,13 @@ pub struct PromptRelaySubmission {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PromptReceiptObservation {
+    pub destination_agent_identifier: DestinationAgentIdentifier,
+    pub source_event_identifier: SourceEventIdentifier,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum PromptRelayDeliveryDisposition {
     Pending,
     Busy,
@@ -542,6 +549,7 @@ pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
     SubmitPrompt(PromptRelaySubmission),
+    ObservePromptReceipt(PromptReceiptObservation),
     QueryInbox(InboxQuery),
     AssignAgentIdentity(AgentIdentityAssignment),
     BindAgentEndpoint(AgentEndpointBinding),
