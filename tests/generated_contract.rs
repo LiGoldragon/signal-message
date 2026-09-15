@@ -1,6 +1,7 @@
 use signal_message::{
     ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt, Context,
-    DeliveryQueueState, DeliveryQueuedAcknowledgment, FlowDeliveryRequest, MessageBody,
+    DeliveryQueueState, DeliveryQueuedAcknowledgment, FlowDeliveryRequest, FlowIdleAcknowledgment,
+    FlowIdleAnnouncement, MessageBody,
     MessageKind, MessageRecipient, MessageSubmission, PromptInterpretationSelection,
     PromptVariant, Query, Response, Restorable, Signal, Signalizable, ThreadSelection,
     TypedPromptEnvelope,
@@ -90,6 +91,36 @@ fn flow_deliver_query_and_two_stage_reply_restore_from_fresh_peer_bytes() {
     let outgoing = landed.signalize().expect("archive landed response");
     let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
     assert_eq!(incoming.restore().expect("restore landed response"), landed);
+}
+
+#[test]
+fn flow_idle_announcement_and_receipts_restore_from_fresh_peer_bytes() {
+    let query = Query::FlowAnnounceIdle(FlowIdleAnnouncement {
+        target_flow_name: "57a7aa".to_owned(),
+    });
+    let outgoing = query.signalize().expect("archive idle announcement");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore idle announcement"),
+        query
+    );
+
+    let reply = Response::FlowIdleAcknowledged(FlowIdleAcknowledgment {
+        target_flow_name: "57a7aa".to_owned(),
+        landed_receipts: vec![CompactReceipt {
+            source_event_identifier: "msg-0042".to_owned(),
+            landed_at: 1_726_400_000_000_000_000,
+            byte_count: 29,
+        }],
+    });
+    let outgoing = reply.signalize().expect("archive idle reply");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore idle reply"),
+        reply
+    );
 }
 
 #[test]

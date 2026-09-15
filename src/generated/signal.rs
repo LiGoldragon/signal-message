@@ -55,6 +55,7 @@ pub enum MessageOperationKind {
     AssignAgentIdentity,
     BindAgentEndpoint,
     FlowDeliver,
+    FlowAnnounceIdle,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -491,6 +492,12 @@ pub struct FlowDeliveryRequest {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct FlowIdleAnnouncement {
+    pub target_flow_name: TargetFlowName,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum DeliveryQueueState {
     Parked,
 }
@@ -513,6 +520,15 @@ pub struct CompactReceipt {
     pub source_event_identifier: SourceEventIdentifier,
     pub landed_at: LandedAt,
     pub byte_count: ByteCount,
+}
+#[rustfmt::skip]
+pub type LandedReceipts = std::vec::Vec<CompactReceipt>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct FlowIdleAcknowledgment {
+    pub target_flow_name: TargetFlowName,
+    pub landed_receipts: LandedReceipts,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -613,6 +629,7 @@ pub enum Query {
     SubscribeThread(ThreadSubscription),
     QueryThreads(ThreadIndexQuery),
     FlowDeliver(FlowDeliveryRequest),
+    FlowAnnounceIdle(FlowIdleAnnouncement),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -634,4 +651,5 @@ pub enum Response {
     DeliveryQueued(DeliveryQueuedAcknowledgment),
     DeliveryLanded(CompactReceipt),
     FlowDeliveryRejected(FlowDeliveryRejection),
+    FlowIdleAcknowledged(FlowIdleAcknowledgment),
 }
