@@ -1,8 +1,9 @@
 use signal_message::{
-    ByteViewable, CompactReceipt, DeliveryQueueState, DeliveryQueuedAcknowledgment,
-    FlowDeliveryRequest, MessageBody, MessageKind, MessageRecipient, MessageSubmission,
-    PromptInterpretationSelection, PromptVariant, Query, Response, Restorable, Signal,
-    Signalizable, ThreadSelection, TypedPromptEnvelope,
+    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
+    DeliveryQueueState, DeliveryQueuedAcknowledgment, FlowDeliveryRequest, MessageBody,
+    MessageKind, MessageRecipient, MessageSubmission, PromptInterpretationSelection,
+    PromptVariant, Query, Response, Restorable, Signal, Signalizable, ThreadSelection,
+    TypedPromptEnvelope,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -22,6 +23,24 @@ fn flow_delivery_request() -> FlowDeliveryRequest {
         },
         target_flow_name: "57a7aa".to_string(),
     }
+}
+
+fn cluster_relay() -> ClusterMessage {
+    ClusterMessage::Relay(ClusterRelay {
+        flow_identifier: "cf7879".to_owned(),
+        session_identifier: "01a0a715".to_owned(),
+        transcript_path: "/transcripts/primary.jsonl".to_owned(),
+        prompt_first_six_words: "Well, fix whatever it is that".to_owned(),
+        prompt_last_six_words: "it's right there in the transcript.".to_owned(),
+        prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7"
+            .to_owned(),
+        timestamp_nanos: 1_726_400_000_000_000_000,
+        cluster_target: ClusterTarget::Primary,
+        cluster_members: vec![ClusterMember {
+            flow_identifier: "57a7aa".to_owned(),
+            session_identifier: "57a7aa02-e52d-4266-8746-6770ff770d11".to_owned(),
+        }],
+    })
 }
 #[test]
 fn message_query_and_response_restore_from_fresh_peer_bytes() {
@@ -61,6 +80,16 @@ fn flow_deliver_query_and_two_stage_reply_restore_from_fresh_peer_bytes() {
     let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
     assert_eq!(incoming.restore().expect("restore landed response"), landed);
 }
+
+#[test]
+fn cluster_relay_metadata_round_trips_in_the_producer_frame() {
+    let relay = cluster_relay();
+    let outgoing = relay.signalize().expect("archive relay");
+    let restored = Signal::<ClusterMessage>::from(outgoing.bytes().to_vec())
+        .restore()
+        .expect("restore relay");
+    assert_eq!(restored, relay);
+}
 #[test]
 fn malformed_peer_bytes_are_rejected() {
     assert!(Signal::<Query>::from(vec![0xff, 0, 1]).restore().is_err());
@@ -82,4 +111,24 @@ fn datom_round_trip_preserves_message_payload() {
         })
         .expect("actualize");
     assert_eq!(restored, query);
+}
+
+#[cfg(feature = "datom")]
+#[test]
+fn datom_round_trip_preserves_cluster_relay_strings() {
+    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
+    use protos::{Protosizable, ReaderBudget, Textualizable};
+    let relay = cluster_relay();
+    let rendered = relay.clone().datomize(vec![]).protosize().textualize();
+    assert!(rendered.contains('«'), "Datom renders string values through its guillemet form");
+    let mut pending = Potential::<ClusterMessage>::from(rendered);
+    let restored = pending
+        .actualize(&mut Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 256,
+        })
+        .expect("actualize");
+    assert_eq!(restored, relay);
 }

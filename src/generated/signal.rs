@@ -526,6 +526,55 @@ pub type FlowDeliveryRejection = FlowDeliveryRejectionReason;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ClusterTarget {
+    Primary,
+    Secondary,
+    Core,
+}
+#[rustfmt::skip]
+pub type FlowIdentifier = String;
+#[rustfmt::skip]
+pub type SessionIdentifier = String;
+#[rustfmt::skip]
+pub type TranscriptPath = String;
+#[rustfmt::skip]
+pub type PromptFirstSixWords = String;
+#[rustfmt::skip]
+pub type PromptLastSixWords = String;
+#[rustfmt::skip]
+pub type PromptSha256 = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct ClusterMember {
+    pub flow_identifier: FlowIdentifier,
+    pub session_identifier: SessionIdentifier,
+}
+#[rustfmt::skip]
+pub type ClusterMembers = std::vec::Vec<ClusterMember>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct ClusterRelay {
+    pub flow_identifier: FlowIdentifier,
+    pub session_identifier: SessionIdentifier,
+    pub transcript_path: TranscriptPath,
+    pub prompt_first_six_words: PromptFirstSixWords,
+    pub prompt_last_six_words: PromptLastSixWords,
+    pub prompt_sha256: PromptSha256,
+    pub timestamp_nanos: TimestampNanos,
+    pub cluster_target: ClusterTarget,
+    pub cluster_members: ClusterMembers,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ClusterMessage {
+    Relay(ClusterRelay),
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
