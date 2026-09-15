@@ -54,6 +54,7 @@ pub enum MessageOperationKind {
     SubmitStamped,
     AssignAgentIdentity,
     BindAgentEndpoint,
+    FlowDeliver,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -479,6 +480,50 @@ pub struct TypedPromptEnvelope {
     pub prompt_interpretation_selection: PromptInterpretationSelection,
 }
 #[rustfmt::skip]
+pub type TargetFlowName = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct FlowDeliveryRequest {
+    pub typed_prompt_envelope: TypedPromptEnvelope,
+    pub target_flow_name: TargetFlowName,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryQueueState {
+    Parked,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryQueuedAcknowledgment {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub target_flow_name: TargetFlowName,
+    pub delivery_queue_state: DeliveryQueueState,
+}
+#[rustfmt::skip]
+pub type LandedAt = TimestampNanos;
+#[rustfmt::skip]
+pub type ByteCount = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct CompactReceipt {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub landed_at: LandedAt,
+    pub byte_count: ByteCount,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum FlowDeliveryRejectionReason {
+    UnknownFlow,
+    StoreRejected,
+}
+#[rustfmt::skip]
+pub type FlowDeliveryRejection = FlowDeliveryRejectionReason;
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
@@ -491,6 +536,7 @@ pub enum Query {
     QueryThread(ThreadQuery),
     SubscribeThread(ThreadSubscription),
     QueryThreads(ThreadIndexQuery),
+    FlowDeliver(FlowDeliveryRequest),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -509,4 +555,7 @@ pub enum Response {
     ThreadSubscribed(ThreadSubscriptionAcknowledgment),
     ThreadIndexListing(ThreadIndexEntries),
     ThreadRejected(ThreadRejection),
+    DeliveryQueued(DeliveryQueuedAcknowledgment),
+    DeliveryLanded(CompactReceipt),
+    FlowDeliveryRejected(FlowDeliveryRejection),
 }
