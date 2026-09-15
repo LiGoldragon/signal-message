@@ -555,6 +555,32 @@ pub type ClusterMembers = std::vec::Vec<ClusterMember>;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct Context {
+    pub flow_identifier: FlowIdentifier,
+    pub source_turn_identifier: SourceTurnIdentifier,
+    pub transcript_path: TranscriptPath,
+    pub prompt_sha256: PromptSha256,
+    pub what_living_said: WhatLivingSaid,
+    pub context_about: ContextAbout,
+    pub context_answered: ContextAnswered,
+    pub context_corrected: ContextCorrected,
+    pub context_uncertainties: ContextUncertainties,
+}
+#[rustfmt::skip]
+pub type SourceTurnIdentifier = String;
+#[rustfmt::skip]
+pub type WhatLivingSaid = String;
+#[rustfmt::skip]
+pub type ContextAbout = String;
+#[rustfmt::skip]
+pub type ContextAnswered = String;
+#[rustfmt::skip]
+pub type ContextCorrected = String;
+#[rustfmt::skip]
+pub type ContextUncertainties = std::vec::Vec<String>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct ClusterRelay {
     pub flow_identifier: FlowIdentifier,
     pub session_identifier: SessionIdentifier,
@@ -562,6 +588,7 @@ pub struct ClusterRelay {
     pub prompt_first_six_words: PromptFirstSixWords,
     pub prompt_last_six_words: PromptLastSixWords,
     pub prompt_sha256: PromptSha256,
+    pub context: Context,
     pub timestamp_nanos: TimestampNanos,
     pub cluster_target: ClusterTarget,
     pub cluster_members: ClusterMembers,

@@ -1,5 +1,5 @@
 use signal_message::{
-    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
+    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt, Context,
     DeliveryQueueState, DeliveryQueuedAcknowledgment, FlowDeliveryRequest, MessageBody,
     MessageKind, MessageRecipient, MessageSubmission, PromptInterpretationSelection,
     PromptVariant, Query, Response, Restorable, Signal, Signalizable, ThreadSelection,
@@ -34,6 +34,17 @@ fn cluster_relay() -> ClusterMessage {
         prompt_last_six_words: "it's right there in the transcript.".to_owned(),
         prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7"
             .to_owned(),
+        context: Context {
+            flow_identifier: "cf7879".to_owned(),
+            source_turn_identifier: "turn-01".to_owned(),
+            transcript_path: "/transcripts/primary.jsonl".to_owned(),
+            prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7".to_owned(),
+            what_living_said: "Start Luna and derive the context.".to_owned(),
+            context_about: "The selected request asks for transcript context.".to_owned(),
+            context_answered: "The model-selection question is answered by Luna.".to_owned(),
+            context_corrected: "No correction is identified from the supplied transcript.".to_owned(),
+            context_uncertainties: vec!["The source does not settle delivery behavior.".to_owned()],
+        },
         timestamp_nanos: 1_726_400_000_000_000_000,
         cluster_target: ClusterTarget::Primary,
         cluster_members: vec![ClusterMember {
