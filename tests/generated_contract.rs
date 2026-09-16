@@ -33,13 +33,13 @@ fn cluster_relay() -> ClusterMessage {
         transcript_path: "/transcripts/primary.jsonl".to_owned(),
         prompt_first_six_words: "Well, fix whatever it is that".to_owned(),
         prompt_last_six_words: "it's right there in the transcript.".to_owned(),
-        prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7"
+        prompt_sha256: "5350d56d15c2a6a8b240f3385a5f941a4c53f4c9b91272070bbb146620bfc28c"
             .to_owned(),
         context: Context {
             flow_identifier: "cf7879".to_owned(),
             source_turn_identifier: "turn-01".to_owned(),
             transcript_path: "/transcripts/primary.jsonl".to_owned(),
-            prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7".to_owned(),
+            prompt_sha256: "5350d56d15c2a6a8b240f3385a5f941a4c53f4c9b91272070bbb146620bfc28c".to_owned(),
             what_living_said: "Start Luna and derive the context.".to_owned(),
             context_about: "The selected request asks for transcript context.".to_owned(),
             context_answered: "The model-selection question is answered by Luna.".to_owned(),
