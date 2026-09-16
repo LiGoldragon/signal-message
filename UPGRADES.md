@@ -1,5 +1,32 @@
 # UPGRADES
 
+## 3.0.0 → 4.0.0 — the flow-delivery vocabulary
+
+### What breaks
+
+1. **`Query`, `Response`, `MessageOperationKind` and
+   `FlowDeliveryRejectionReason` each gained variants.** These enums are
+   closed vocabulary and consumers match them exhaustively, so every peer
+   must be recompiled. A peer built against 3.0.0 that is handed a
+   `FlowDeliver`, `DeliveryQueued`, `DeliveryLanded` or `FlowDeliveryRejected`
+   discriminant fails bytecheck with no typed way to say why — which is the
+   reason this is a major move rather than a minor one.
+2. **`FlowDeliveryRejectionReason::ConflictingEnvelope` is new.** A source
+   event identifier re-used for a *different* envelope is now a typed
+   refusal. It was previously not expressible, and the messenger answered
+   `DeliveryQueued` while dropping the second text.
+
+The 3.0.0 vocabulary was published as 3.0.0 twice — once without the
+flow-delivery types and once with them. That is the defect this bump repairs:
+the crate's semver IS the wire's semver.
+
+### Deploying
+
+Nothing to deploy: this crate is a contract with no runtime of its own.
+Repin every consumer in one pass — `meta-signal-message` and `message` both
+pin this crate by rev, and cargo admits exactly one `signal-message` per
+graph.
+
 ## 2.0.1 → 3.0.0 — shared frame, arity-split codec
 
 ### What breaks

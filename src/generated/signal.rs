@@ -520,6 +520,7 @@ pub struct CompactReceipt {
 pub enum FlowDeliveryRejectionReason {
     UnknownFlow,
     StoreRejected,
+    ConflictingEnvelope,
 }
 #[rustfmt::skip]
 pub type FlowDeliveryRejection = FlowDeliveryRejectionReason;

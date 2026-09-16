@@ -1,8 +1,8 @@
 use signal_message::{
     ByteViewable, CompactReceipt, DeliveryQueueState, DeliveryQueuedAcknowledgment,
-    FlowDeliveryRequest, MessageBody, MessageKind, MessageRecipient, MessageSubmission,
-    PromptInterpretationSelection, PromptVariant, Query, Response, Restorable, Signal,
-    Signalizable, ThreadSelection, TypedPromptEnvelope,
+    FlowDeliveryRejectionReason, FlowDeliveryRequest, MessageBody, MessageKind, MessageRecipient,
+    MessageSubmission, PromptInterpretationSelection, PromptVariant, Query, Response, Restorable,
+    Signal, Signalizable, ThreadSelection, TypedPromptEnvelope,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -52,14 +52,52 @@ fn flow_deliver_query_and_two_stage_reply_restore_from_fresh_peer_bytes() {
     let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
     assert_eq!(incoming.restore().expect("restore queued response"), queued);
 
-    let landed = Response::DeliveryLanded(CompactReceipt {
-        source_event_identifier: "msg-0042".to_string(),
-        landed_at: 1_726_400_000_000_000_000,
-        byte_count: 29,
-    });
+    let landed = landed_receipt();
     let outgoing = landed.signalize().expect("archive landed response");
     let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
     assert_eq!(incoming.restore().expect("restore landed response"), landed);
+}
+/// The receipt example counts the bytes of the request example's text. The
+/// two examples ARE the specification, so they may not contradict each other:
+/// a peer implementer reading them must be able to derive one from the other.
+#[test]
+fn the_receipt_example_counts_the_request_example_bytes() {
+    let Response::DeliveryLanded(receipt) = landed_receipt() else {
+        unreachable!("landed_receipt is a DeliveryLanded")
+    };
+    assert_eq!(
+        receipt.byte_count,
+        flow_delivery_request()
+            .typed_prompt_envelope
+            .raw_prompt_text
+            .len() as i64
+    );
+}
+fn landed_receipt() -> Response {
+    Response::DeliveryLanded(CompactReceipt {
+        source_event_identifier: "msg-0042".to_string(),
+        landed_at: 1_726_400_000_000_000_000,
+        byte_count: 28,
+    })
+}
+/// Every rejection reason is a record kind of its own, and the reason the
+/// messenger produces most often — a source identifier re-used for different
+/// text — had no example at all.
+#[test]
+fn every_flow_delivery_rejection_reason_restores_from_fresh_peer_bytes() {
+    for reason in [
+        FlowDeliveryRejectionReason::UnknownFlow,
+        FlowDeliveryRejectionReason::StoreRejected,
+        FlowDeliveryRejectionReason::ConflictingEnvelope,
+    ] {
+        let rejected = Response::FlowDeliveryRejected(reason);
+        let outgoing = rejected.signalize().expect("archive rejected response");
+        let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
+        assert_eq!(
+            incoming.restore().expect("restore rejected response"),
+            rejected
+        );
+    }
 }
 #[test]
 fn malformed_peer_bytes_are_rejected() {
