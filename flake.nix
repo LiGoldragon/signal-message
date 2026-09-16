@@ -43,6 +43,7 @@
           test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
           test-generated-contract = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--test generated_contract"; });
           test-datom = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--features datom --test generated_contract"; });
+          test-notify-datom = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--features datom --test notify_datom"; });
           test-doc = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--doc"; });
           doc = craneLib.cargoDoc (commonArgs // { inherit cargoArtifacts; RUSTDOCFLAGS = "-D warnings"; });
           fmt = craneLib.cargoFmt { inherit src; };

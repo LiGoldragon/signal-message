@@ -30,7 +30,10 @@ pub fn parse_one(arguments: &[String]) -> Result<ValidatedNotify, NotifyTextErro
         maximum_depth: 256,
     }).map_err(|_| NotifyTextError::Malformed)?;
     let recipient = &notify.notify_recipient;
-    if recipient.is_empty() || recipient.contains('/') || recipient.matches('@').count() != 1 {
+    let Some((localpart, domain)) = recipient.split_once('@') else {
+        return Err(NotifyTextError::Recipient);
+    };
+    if localpart.is_empty() || domain.is_empty() || domain.contains('@') || recipient.contains('/') || recipient.chars().any(char::is_whitespace) {
         return Err(NotifyTextError::Recipient);
     }
     if notify.notify_body.is_empty() || notify.notify_body.len() > MAXIMUM_BODY_BYTES {
