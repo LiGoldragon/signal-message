@@ -12,7 +12,9 @@ fn parse(value: Notify) -> Notify {
 #[test]
 fn producer_notify_round_trips_escaped_text() {
     let notify = Notify { notify_recipient: "bob@example.org".into(), notify_body: "hello «quoted» text".into() };
-    assert_eq!(parse(notify.clone()), notify);
+    let text = NotifyEnvelope::Notify(notify.clone()).datomize(vec![]).protosize().textualize();
+    assert_eq!(text, r#"Notify.{ bob@example.org «hello «quoted\» text» }"#);
+    assert_eq!(parse_one(&[text]).expect("validated Notify").0, notify);
 }
 
 #[test]
