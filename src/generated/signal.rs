@@ -612,8 +612,32 @@ pub struct ClusterRelay {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PeerSender {
+    pub flow_identifier: FlowIdentifier,
+    pub session_identifier: SessionIdentifier,
+}
+#[rustfmt::skip]
+pub type PeerSourcePath = String;
+#[rustfmt::skip]
+pub type PeerBodySha256 = String;
+#[rustfmt::skip]
+pub type PeerBody = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PeerEnvelope {
+    pub peer_sender: PeerSender,
+    pub source_event_identifier: SourceEventIdentifier,
+    pub peer_source_path: PeerSourcePath,
+    pub peer_body_sha256: PeerBodySha256,
+    pub peer_body: PeerBody,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum ClusterMessage {
     Relay(ClusterRelay),
+    Peer(PeerEnvelope),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
