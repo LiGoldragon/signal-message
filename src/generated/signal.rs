@@ -448,7 +448,7 @@ pub struct ThreadContents {
     pub thread_name: ThreadName,
     pub thread_relation_selection: ThreadRelationSelection,
     pub participants: Participants,
-    pub thread_entries: ThreadEntries,
+    pub message_count: MessageCount,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -481,6 +481,17 @@ pub struct TypedPromptEnvelope {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct Notify {
+    pub notify_recipient: NotifyRecipient,
+    pub notify_body: NotifyBody,
+}
+#[rustfmt::skip]
+pub type NotifyRecipient = String;
+#[rustfmt::skip]
+pub type NotifyBody = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
@@ -510,14 +521,3 @@ pub enum Response {
     ThreadIndexListing(ThreadIndexEntries),
     ThreadRejected(ThreadRejection),
 }
-#[rustfmt::skip]
-#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
-pub struct Notify {
-    pub notify_recipient: NotifyRecipient,
-    pub notify_body: NotifyBody,
-}
-#[rustfmt::skip]
-pub type NotifyRecipient = String;
-#[rustfmt::skip]
-pub type NotifyBody = String;
