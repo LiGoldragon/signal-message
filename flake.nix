@@ -37,7 +37,15 @@
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
       in
       {
-        packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
+        packages = let
+          notifyDatom = craneLib.buildPackage (commonArgs // {
+            inherit cargoArtifacts;
+            cargoExtraArgs = "--features datom --bin notify-datom";
+          });
+        in {
+          default = notifyDatom;
+          notify-datom = notifyDatom;
+        };
         checks = {
           build = craneLib.cargoBuild (commonArgs // { inherit cargoArtifacts; });
           test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
