@@ -618,6 +618,47 @@ pub enum ClusterMessage {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum Schema3ProbeOutcome {
+    Observed(Schema3ProbeCounts),
+    Refused(Schema3ProbeRefusal),
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct Schema3ProbeCounts {
+    pub agent_registry_count: AgentRegistryCount,
+    pub message_ledger_count: MessageLedgerCount,
+    pub ledger_head_count: LedgerHeadCount,
+    pub recipient_inbox_count: RecipientInboxCount,
+    pub thread_index_count: ThreadIndexCount,
+    pub delivery_outbox_count: DeliveryOutboxCount,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum Schema3ProbeRefusal {
+    InputNotRegularFile,
+    InputUnreadable,
+    PrivateCopyUnavailable,
+    SourceChanged,
+    LegacyDecodeOrInvariant,
+    PrivateCleanup,
+}
+#[rustfmt::skip]
+pub type AgentRegistryCount = i64;
+#[rustfmt::skip]
+pub type MessageLedgerCount = i64;
+#[rustfmt::skip]
+pub type LedgerHeadCount = i64;
+#[rustfmt::skip]
+pub type RecipientInboxCount = i64;
+#[rustfmt::skip]
+pub type ThreadIndexCount = i64;
+#[rustfmt::skip]
+pub type DeliveryOutboxCount = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
