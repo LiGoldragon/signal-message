@@ -1,10 +1,11 @@
 use signal_message::{
     ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
-    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, FlowDeliveryRequest,
-    FlowIdleAcknowledgment, FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient,
-    MessageSubmission, PeerBody, PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath,
-    PromptInterpretationSelection, PromptVariant, Query, Response, Restorable, Signal,
-    Signalizable, ThreadSelection, TypedPromptEnvelope,
+    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReport, DeliveryRequest,
+    FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment, FlowIdleAnnouncement, MessageBody,
+    MessageKind, MessageRecipient, MessageSubmission, PeerBody, PeerBodySha256, PeerEnvelope,
+    PeerSender, PeerSourcePath, PromptInterpretationSelection, PromptVariant, Query, ReceiptKind,
+    RecipientReceipt, Response, Restorable, Signal, Signalizable, ThreadSelection,
+    TypedPromptEnvelope,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -136,6 +137,38 @@ fn flow_idle_announcement_and_receipts_restore_from_fresh_peer_bytes() {
         Signal::<Response>::from(outgoing.bytes().to_vec())
             .restore()
             .expect("restore idle reply"),
+        reply
+    );
+}
+
+#[test]
+fn nexus_delivery_and_typed_receipts_restore_from_fresh_peer_bytes() {
+    let request = DeliveryRequest {
+        source_event_identifier: "fac697-0042".to_owned(),
+        cluster_message: peer_message(),
+        target_flows: vec![FlowIdentifier::from("da1e3f")],
+    };
+    let query = Query::Deliver(request);
+    let outgoing = query.signalize().expect("archive delivery query");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore delivery query"),
+        query
+    );
+
+    let reply = Response::DeliveryRecorded(DeliveryReport {
+        source_event_identifier: "fac697-0042".to_owned(),
+        recipient_receipts: vec![RecipientReceipt {
+            flow_identifier: FlowIdentifier::from("da1e3f"),
+            receipt_kind: ReceiptKind::TranscriptWitnessed,
+        }],
+    });
+    let outgoing = reply.signalize().expect("archive delivery report");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore delivery report"),
         reply
     );
 }

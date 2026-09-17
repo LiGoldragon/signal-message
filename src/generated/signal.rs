@@ -640,6 +640,41 @@ pub enum ClusterMessage {
     Peer(PeerEnvelope),
 }
 #[rustfmt::skip]
+pub type TargetFlows = std::vec::Vec<FlowIdentifier>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryRequest {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub cluster_message: ClusterMessage,
+    pub target_flows: TargetFlows,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ReceiptKind {
+    Accepted,
+    TranscriptWitnessed,
+    Parked,
+    FileOnly,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct RecipientReceipt {
+    pub flow_identifier: FlowIdentifier,
+    pub receipt_kind: ReceiptKind,
+}
+#[rustfmt::skip]
+pub type RecipientReceipts = std::vec::Vec<RecipientReceipt>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryReport {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub recipient_receipts: RecipientReceipts,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
@@ -654,6 +689,7 @@ pub enum Query {
     QueryThreads(ThreadIndexQuery),
     FlowDeliver(FlowDeliveryRequest),
     FlowAnnounceIdle(FlowIdleAnnouncement),
+    Deliver(DeliveryRequest),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -676,4 +712,5 @@ pub enum Response {
     DeliveryLanded(CompactReceipt),
     FlowDeliveryRejected(FlowDeliveryRejection),
     FlowIdleAcknowledged(FlowIdleAcknowledgment),
+    DeliveryRecorded(DeliveryReport),
 }
