@@ -1,6 +1,6 @@
 use signal_message::{
-    ByteViewable, Restorable, Schema3ProbeCounts, Schema3ProbeOutcome, Schema3ProbeRefusal, Signal,
-    Signalizable,
+    ByteViewable, Restorable, Schema3ProbeCounts, Schema3ProbeOutcome, Schema3ProbeQuery,
+    Schema3ProbeRefusal, Signal, Signalizable,
 };
 
 fn counts() -> Schema3ProbeCounts {
@@ -37,6 +37,31 @@ fn schema3_probe_refusal_round_trips_without_store_payload() {
             .restore()
             .expect("restore refusal"),
         outcome
+    );
+}
+
+#[cfg(feature = "datom")]
+#[test]
+fn schema3_probe_query_actualizes_one_complete_datom_argument() {
+    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
+    use protos::{Protosizable, ReaderBudget, Textualizable};
+
+    let mut pending = Potential::<Schema3ProbeQuery>::from("Inspect.«/abs/copied.sema»");
+    let query = pending
+        .actualize(&mut Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 256,
+        })
+        .expect("actualize complete probe argument");
+    assert_eq!(
+        query,
+        Schema3ProbeQuery::Inspect("/abs/copied.sema".to_owned())
+    );
+    assert_eq!(
+        query.datomize(vec![]).protosize().textualize(),
+        "Inspect./abs/copied.sema"
     );
 }
 
