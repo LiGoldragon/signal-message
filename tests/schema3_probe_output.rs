@@ -1,6 +1,8 @@
+#[cfg(feature = "datom")]
+use signal_message::Schema3ProbeQuery;
 use signal_message::{
-    ByteViewable, Restorable, Schema3ProbeCounts, Schema3ProbeOutcome, Schema3ProbeQuery,
-    Schema3ProbeRefusal, Signal, Signalizable,
+    ByteViewable, Restorable, Schema3ProbeCounts, Schema3ProbeOutcome, Schema3ProbeRefusal, Signal,
+    Signalizable,
 };
 
 fn counts() -> Schema3ProbeCounts {
