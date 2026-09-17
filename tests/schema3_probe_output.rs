@@ -31,7 +31,7 @@ fn schema3_probe_observation_round_trips_through_fresh_peer_bytes() {
 
 #[test]
 fn schema3_probe_refusal_round_trips_without_store_payload() {
-    let outcome = Schema3ProbeOutcome::Refused(Schema3ProbeRefusal::LegacyDecodeOrInvariant);
+    let outcome = Schema3ProbeOutcome::Refused(Schema3ProbeRefusal::LegacyEngineOpenOrSchema);
     let outgoing = outcome.signalize().expect("archive refusal");
     assert!(!outgoing.bytes().is_empty());
     assert_eq!(
@@ -40,6 +40,31 @@ fn schema3_probe_refusal_round_trips_without_store_payload() {
             .expect("restore refusal"),
         outcome
     );
+}
+
+#[test]
+fn every_schema3_failure_stage_round_trips_without_payload() {
+    use Schema3ProbeRefusal::*;
+    let refusals = [
+        InputNotRegularFile, InputUnreadable, PrivateCopyUnavailable, SourceChanged,
+        LegacyEngineOpenOrSchema, LegacyAgentRegistryRegistration,
+        LegacyMessageLedgerRegistration, LegacyLedgerHeadRegistration,
+        LegacyRecipientInboxRegistration, LegacyThreadIndexRegistration,
+        LegacyDeliveryOutboxRegistration, LegacyAgentRegistryDecode,
+        LegacyMessageLedgerDecode, LegacyLedgerHeadDecode, LegacyRecipientInboxDecode,
+        LegacyThreadIndexDecode, LegacyDeliveryOutboxDecode, LegacyLedgerInvariant,
+        LegacyReferenceInvariant, LegacyDecoderPanic, PrivateCleanup,
+    ];
+    for refusal in refusals {
+        let outcome = Schema3ProbeOutcome::Refused(refusal);
+        let outgoing = outcome.signalize().expect("archive typed refusal");
+        assert_eq!(
+            Signal::<Schema3ProbeOutcome>::from(outgoing.bytes().to_vec())
+                .restore()
+                .expect("restore typed refusal"),
+            outcome
+        );
+    }
 }
 
 #[cfg(feature = "datom")]
@@ -87,9 +112,9 @@ fn schema3_probe_outcomes_have_typed_datom_without_store_payload() {
         .expect("actualize observation");
     assert_eq!(restored, observed);
 
-    let refusal = Schema3ProbeOutcome::Refused(Schema3ProbeRefusal::LegacyDecodeOrInvariant);
+    let refusal = Schema3ProbeOutcome::Refused(Schema3ProbeRefusal::LegacyEngineOpenOrSchema);
     let rendered = refusal.clone().datomize(vec![]).protosize().textualize();
-    assert_eq!(rendered, "Refused.LegacyDecodeOrInvariant");
+    assert_eq!(rendered, "Refused.LegacyEngineOpenOrSchema");
     let mut pending = Potential::<Schema3ProbeOutcome>::from(rendered);
     let restored = pending
         .actualize(&mut Budget {
