@@ -1,11 +1,12 @@
 use signal_message::{
     ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
-    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReport, DeliveryRequest,
-    FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment, FlowIdleAnnouncement, MessageBody,
-    MessageKind, MessageRecipient, MessageSubmission, PeerBody, PeerBodySha256, PeerEnvelope,
-    PeerSender, PeerSourcePath, PromptInterpretationSelection, PromptVariant, Query, ReceiptKind,
-    RecipientReceipt, Response, Restorable, Signal, Signalizable, ThreadSelection,
-    TypedPromptEnvelope,
+    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReceiptListing,
+    DeliveryReceiptQuery, DeliveryReceiptRecord, DeliveryReceiptState, DeliveryReport,
+    DeliveryRequest, FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment,
+    FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient, MessageSubmission, PeerBody,
+    PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath, PromptInterpretationSelection,
+    PromptVariant, Query, ReceiptKind, RecipientReceipt, Response, Restorable, Signal,
+    Signalizable, ThreadSelection, TypedPromptEnvelope,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -171,6 +172,135 @@ fn nexus_delivery_and_typed_receipts_restore_from_fresh_peer_bytes() {
             .expect("restore delivery report"),
         reply
     );
+}
+
+#[test]
+fn receipt_query_and_retryability_restore_from_fresh_peer_bytes() {
+    let query = Query::QueryDeliveryReceipts(DeliveryReceiptQuery {
+        source_event_identifier: "fac697-0042".to_owned(),
+        target_flows: vec![
+            FlowIdentifier::from("da1e3f"),
+            FlowIdentifier::from("missing"),
+        ],
+    });
+    let outgoing = query.signalize().expect("archive receipt query");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore receipt query"),
+        query
+    );
+
+    let reply = Response::DeliveryReceiptListing(DeliveryReceiptListing {
+        source_event_identifier: "fac697-0042".to_owned(),
+        delivery_receipt_states: vec![
+            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
+                flow_identifier: FlowIdentifier::from("da1e3f"),
+                receipt_kind: ReceiptKind::Parked,
+                retryable: false,
+            }),
+            DeliveryReceiptState::Missing(FlowIdentifier::from("missing")),
+        ],
+    });
+    let outgoing = reply.signalize().expect("archive receipt listing");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore receipt listing"),
+        reply
+    );
+}
+
+#[cfg(feature = "datom")]
+#[test]
+fn receipt_query_listing_and_rejection_have_canonical_datom_forms() {
+    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
+    use protos::{Protosizable, ReaderBudget, Textualizable};
+
+    let query = Query::QueryDeliveryReceipts(DeliveryReceiptQuery {
+        source_event_identifier: "event-42".to_owned(),
+        target_flows: vec![
+            FlowIdentifier::from("accepted"),
+            FlowIdentifier::from("parked"),
+        ],
+    });
+    let listing = Response::DeliveryReceiptListing(DeliveryReceiptListing {
+        source_event_identifier: "event-42".to_owned(),
+        delivery_receipt_states: vec![
+            DeliveryReceiptState::Missing(FlowIdentifier::from("missing")),
+            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
+                flow_identifier: FlowIdentifier::from("accepted"),
+                receipt_kind: ReceiptKind::Accepted,
+                retryable: false,
+            }),
+            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
+                flow_identifier: FlowIdentifier::from("parked"),
+                receipt_kind: ReceiptKind::Parked,
+                retryable: true,
+            }),
+        ],
+    });
+    let rejection = Response::DeliveryReceiptQueryRejected(
+        signal_message::DeliveryReceiptQueryRejection::InvalidAddressSelection(
+            signal_message::DeliveryAddressSelectionRejection::ReservedSourceEventIdentifier,
+        ),
+    );
+    for (response, canonical) in [
+        (
+            listing,
+            "DeliveryReceiptListing.{ event-42 [ Missing.missing Recorded.{ accepted Accepted False } Recorded.{ parked Parked True } ] }",
+        ),
+        (
+            rejection,
+            "DeliveryReceiptQueryRejected.InvalidAddressSelection.ReservedSourceEventIdentifier",
+        ),
+    ] {
+        let mut pending = Potential::<Response>::from(canonical);
+        let parsed = pending
+            .actualize(&mut Budget {
+                remaining: 4096,
+                reader: ReaderBudget { remaining: 4096 },
+                depth: 0,
+                maximum_depth: 256,
+            })
+            .expect("parse canonical receipt response");
+        assert_eq!(parsed, response, "{canonical}");
+        let rendered = response.datomize(vec![]).protosize().textualize();
+        assert_eq!(rendered, canonical);
+        let mut pending = Potential::<Response>::from(rendered.clone());
+        let restored = pending
+            .actualize(&mut Budget {
+                remaining: 4096,
+                reader: ReaderBudget { remaining: 4096 },
+                depth: 0,
+                maximum_depth: 256,
+            })
+            .expect("actualize canonical receipt response");
+        assert_eq!(restored, parsed, "{rendered}");
+    }
+    let canonical = "QueryDeliveryReceipts.{ event-42 [ accepted parked ] }";
+    let mut pending = Potential::<Query>::from(canonical);
+    let parsed = pending
+        .actualize(&mut Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 256,
+        })
+        .expect("parse canonical receipt query");
+    assert_eq!(parsed, query, "{canonical}");
+    let rendered = query.datomize(vec![]).protosize().textualize();
+    assert_eq!(rendered, canonical);
+    let mut pending = Potential::<Query>::from(rendered.clone());
+    let restored = pending
+        .actualize(&mut Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 256,
+        })
+        .expect("actualize canonical receipt query");
+    assert_eq!(restored, parsed, "{rendered}");
 }
 
 #[test]

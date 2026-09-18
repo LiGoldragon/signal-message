@@ -677,6 +677,59 @@ pub struct DeliveryReport {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryReceiptQuery {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub target_flows: TargetFlows,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryReceiptRecord {
+    pub flow_identifier: FlowIdentifier,
+    pub receipt_kind: ReceiptKind,
+    pub retryable: Retryable,
+}
+#[rustfmt::skip]
+pub type Retryable = bool;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryReceiptState {
+    Recorded(DeliveryReceiptRecord),
+    Missing(FlowIdentifier),
+}
+#[rustfmt::skip]
+pub type DeliveryReceiptStates = std::vec::Vec<DeliveryReceiptState>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct DeliveryReceiptListing {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub delivery_receipt_states: DeliveryReceiptStates,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryAddressSelectionRejection {
+    EmptySourceEventIdentifier,
+    ReservedSourceEventIdentifier,
+    SourceEventIdentifierContainsNull,
+    EmptyTargetFlows,
+    EmptyTargetFlowIdentifier,
+    DuplicateTargetFlows,
+    TargetFlowIdentifierContainsNull,
+    TooManyTargetFlows,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryReceiptQueryRejection {
+    InvalidAddressSelection(DeliveryAddressSelectionRejection),
+    StoreRejected,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Submit(MessageSubmission),
     SubmitStamped(StampedMessageSubmission),
@@ -690,6 +743,7 @@ pub enum Query {
     FlowDeliver(FlowDeliveryRequest),
     FlowAnnounceIdle(FlowIdleAnnouncement),
     Deliver(DeliveryRequest),
+    QueryDeliveryReceipts(DeliveryReceiptQuery),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -713,4 +767,7 @@ pub enum Response {
     FlowDeliveryRejected(FlowDeliveryRejection),
     FlowIdleAcknowledged(FlowIdleAcknowledgment),
     DeliveryRecorded(DeliveryReport),
+    DeliveryRejected(DeliveryAddressSelectionRejection),
+    DeliveryReceiptListing(DeliveryReceiptListing),
+    DeliveryReceiptQueryRejected(DeliveryReceiptQueryRejection),
 }
