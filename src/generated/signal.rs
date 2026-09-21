@@ -728,6 +728,132 @@ pub enum DeliveryReceiptQueryRejection {
     StoreRejected,
 }
 #[rustfmt::skip]
+pub type SingleFlowRecipient = FlowIdentifier;
+#[rustfmt::skip]
+pub type UnixMillis = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum WaitDeadline {
+    Default,
+    AtUnixMillis(UnixMillis),
+}
+#[rustfmt::skip]
+pub type DeliveryRequestId = String;
+#[rustfmt::skip]
+pub type DeliveryAttemptId = String;
+#[rustfmt::skip]
+pub type DurableSubmissionReceipt = String;
+#[rustfmt::skip]
+pub type TransportReceiptId = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum WaitOutcome {
+    NotWaited,
+    TransportConfirmed(TransportReceiptId),
+    WaitingTooLong,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct SubmitDelivery {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub single_flow_recipient: SingleFlowRecipient,
+    pub message_body: MessageBody,
+    pub wait_deadline: WaitDeadline,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct SubmitDeliveryResult {
+    pub delivery_request_id: DeliveryRequestId,
+    pub delivery_attempt_id: DeliveryAttemptId,
+    pub durable_submission_receipt: DurableSubmissionReceipt,
+    pub wait_outcome: WaitOutcome,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum SubmitDeliveryRejection {
+    MissingDefaultDeadline,
+    InvalidDeadline,
+    StoreRejected,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct CancelPending {
+    pub delivery_request_id: DeliveryRequestId,
+    pub delivery_attempt_id: DeliveryAttemptId,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum CancelPendingResult {
+    CancelledQueued,
+    WaitCancelledDeliveryContinues,
+    AlreadyTerminal,
+    UnknownRequest,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct QueryDeliveryReceipt {
+    pub delivery_request_id: DeliveryRequestId,
+    pub delivery_attempt_id: DeliveryAttemptId,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryAttemptState {
+    Queued,
+    PermitHeld,
+    TransportConfirmed,
+    Ambiguous,
+    Released,
+    Missing,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct AttemptDeliveryReceipt {
+    pub delivery_request_id: DeliveryRequestId,
+    pub delivery_attempt_id: DeliveryAttemptId,
+    pub delivery_attempt_state: DeliveryAttemptState,
+}
+#[rustfmt::skip]
+pub type BindingGeneration = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ExpectedRecipientMissingCause {
+    RecipientUnavailable,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct RecoveryIncidentKey {
+    pub source_event_identifier: SourceEventIdentifier,
+    pub single_flow_recipient: SingleFlowRecipient,
+    pub binding_generation: BindingGeneration,
+    pub expected_recipient_missing_cause: ExpectedRecipientMissingCause,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum RecoveryIncidentDisposition {
+    EscalateFieldUltraLow,
+    ParkRecipientUnavailable,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct ExpectedRecipientMissingIncident {
+    pub recovery_incident_key: RecoveryIncidentKey,
+    pub recovery_incident_disposition: RecoveryIncidentDisposition,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
@@ -744,6 +870,9 @@ pub enum Query {
     FlowAnnounceIdle(FlowIdleAnnouncement),
     Deliver(DeliveryRequest),
     QueryDeliveryReceipts(DeliveryReceiptQuery),
+    SubmitDelivery(SubmitDelivery),
+    CancelPending(CancelPending),
+    QueryDeliveryReceipt(QueryDeliveryReceipt),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -770,4 +899,8 @@ pub enum Response {
     DeliveryRejected(DeliveryAddressSelectionRejection),
     DeliveryReceiptListing(DeliveryReceiptListing),
     DeliveryReceiptQueryRejected(DeliveryReceiptQueryRejection),
+    DeliverySubmitted(SubmitDeliveryResult),
+    DeliverySubmissionRejected(SubmitDeliveryRejection),
+    PendingCancelled(CancelPendingResult),
+    DeliveryReceiptQueried(AttemptDeliveryReceipt),
 }

@@ -1,12 +1,14 @@
 use signal_message::{
-    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
-    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReceiptListing,
+    AttemptDeliveryReceipt, ByteViewable, CancelPending, CancelPendingResult, ClusterMember,
+    ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt, Context, DeliveryAttemptState,
+    DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReceiptListing,
     DeliveryReceiptQuery, DeliveryReceiptRecord, DeliveryReceiptState, DeliveryReport,
     DeliveryRequest, FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment,
     FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient, MessageSubmission, PeerBody,
     PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath, PromptInterpretationSelection,
-    PromptVariant, Query, ReceiptKind, RecipientReceipt, Response, Restorable, Signal,
-    Signalizable, ThreadSelection, TypedPromptEnvelope,
+    PromptVariant, Query, QueryDeliveryReceipt, ReceiptKind, RecipientReceipt, Response,
+    Restorable, Signal, Signalizable, SubmitDelivery, SubmitDeliveryResult, ThreadSelection,
+    TypedPromptEnvelope, WaitDeadline, WaitOutcome,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -25,6 +27,15 @@ fn flow_delivery_request() -> FlowDeliveryRequest {
             prompt_interpretation_selection: PromptInterpretationSelection::None,
         },
         target_flow_name: "57a7aa".to_string(),
+    }
+}
+
+fn submit_delivery() -> SubmitDelivery {
+    SubmitDelivery {
+        source_event_identifier: "delivery-event-0042".to_owned(),
+        single_flow_recipient: FlowIdentifier::from("57a7aa"),
+        message_body: MessageBody::from("one bounded recipient"),
+        wait_deadline: WaitDeadline::AtUnixMillis(1_726_400_000_000),
     }
 }
 
@@ -110,6 +121,78 @@ fn flow_deliver_query_and_two_stage_reply_restore_from_fresh_peer_bytes() {
     let outgoing = landed.signalize().expect("archive landed response");
     let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
     assert_eq!(incoming.restore().expect("restore landed response"), landed);
+}
+
+#[test]
+fn single_recipient_delivery_wait_cancel_and_exact_receipt_restore_from_fresh_peer_bytes() {
+    let submit = Query::SubmitDelivery(submit_delivery());
+    let outgoing = submit.signalize().expect("archive submit delivery");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore submit delivery"),
+        submit
+    );
+
+    let submitted = Response::DeliverySubmitted(SubmitDeliveryResult {
+        delivery_request_id: "request-0042".to_owned(),
+        delivery_attempt_id: "attempt-0042".to_owned(),
+        durable_submission_receipt: "durable-0042".to_owned(),
+        wait_outcome: WaitOutcome::WaitingTooLong,
+    });
+    let outgoing = submitted.signalize().expect("archive durable submission");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore durable submission"),
+        submitted
+    );
+
+    let cancel = Query::CancelPending(CancelPending {
+        delivery_request_id: "request-0042".to_owned(),
+        delivery_attempt_id: "attempt-0042".to_owned(),
+    });
+    let outgoing = cancel.signalize().expect("archive cancellation");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore cancellation"),
+        cancel
+    );
+
+    let cancelled = Response::PendingCancelled(CancelPendingResult::WaitCancelledDeliveryContinues);
+    let outgoing = cancelled.signalize().expect("archive cancellation result");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore cancellation result"),
+        cancelled
+    );
+
+    let receipt = Query::QueryDeliveryReceipt(QueryDeliveryReceipt {
+        delivery_request_id: "request-0042".to_owned(),
+        delivery_attempt_id: "attempt-0042".to_owned(),
+    });
+    let outgoing = receipt.signalize().expect("archive exact receipt query");
+    assert_eq!(
+        Signal::<Query>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore exact receipt query"),
+        receipt
+    );
+
+    let queried = Response::DeliveryReceiptQueried(AttemptDeliveryReceipt {
+        delivery_request_id: "request-0042".to_owned(),
+        delivery_attempt_id: "attempt-0042".to_owned(),
+        delivery_attempt_state: DeliveryAttemptState::PermitHeld,
+    });
+    let outgoing = queried.signalize().expect("archive exact receipt state");
+    assert_eq!(
+        Signal::<Response>::from(outgoing.bytes().to_vec())
+            .restore()
+            .expect("restore exact receipt state"),
+        queried
+    );
 }
 
 #[test]
