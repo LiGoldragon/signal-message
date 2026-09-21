@@ -757,11 +757,53 @@ pub enum WaitOutcome {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryModeSelection {
+    Raw,
+    FlowLocked,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryLockState {
+    Unlocked,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum UidAuthorization {
+    UidAuthorized,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum SenderAttribution {
+    Unattributed,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct RawDeliveryVisibility {
+    pub delivery_lock_state: DeliveryLockState,
+    pub uid_authorization: UidAuthorization,
+    pub sender_attribution: SenderAttribution,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum DeliveryVisibility {
+    RawUnlocked(RawDeliveryVisibility),
+    FlowLocked,
+    FlowLockUnavailable,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct SubmitDelivery {
     pub source_event_identifier: SourceEventIdentifier,
     pub single_flow_recipient: SingleFlowRecipient,
     pub message_body: MessageBody,
     pub wait_deadline: WaitDeadline,
+    pub delivery_mode_selection: DeliveryModeSelection,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -771,6 +813,7 @@ pub struct SubmitDeliveryResult {
     pub delivery_attempt_id: DeliveryAttemptId,
     pub durable_submission_receipt: DurableSubmissionReceipt,
     pub wait_outcome: WaitOutcome,
+    pub delivery_visibility: DeliveryVisibility,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]

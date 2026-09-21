@@ -1,14 +1,15 @@
 use signal_message::{
     AttemptDeliveryReceipt, ByteViewable, CancelPending, CancelPendingResult, ClusterMember,
     ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt, Context, DeliveryAttemptState,
-    DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReceiptListing,
-    DeliveryReceiptQuery, DeliveryReceiptRecord, DeliveryReceiptState, DeliveryReport,
-    DeliveryRequest, FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment,
-    FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient, MessageSubmission, PeerBody,
-    PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath, PromptInterpretationSelection,
-    PromptVariant, Query, QueryDeliveryReceipt, ReceiptKind, RecipientReceipt, Response,
-    Restorable, Signal, Signalizable, SubmitDelivery, SubmitDeliveryResult, ThreadSelection,
-    TypedPromptEnvelope, WaitDeadline, WaitOutcome,
+    DeliveryLockState, DeliveryModeSelection, DeliveryQueueState, DeliveryQueuedAcknowledgment,
+    DeliveryReceiptListing, DeliveryReceiptQuery, DeliveryReceiptRecord, DeliveryReceiptState,
+    DeliveryReport, DeliveryRequest, DeliveryVisibility, FlowDeliveryRequest, FlowIdentifier,
+    FlowIdleAcknowledgment, FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient,
+    MessageSubmission, PeerBody, PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath,
+    PromptInterpretationSelection, PromptVariant, Query, QueryDeliveryReceipt,
+    RawDeliveryVisibility, ReceiptKind, RecipientReceipt, Response, Restorable, SenderAttribution,
+    Signal, Signalizable, SubmitDelivery, SubmitDeliveryResult, ThreadSelection,
+    TypedPromptEnvelope, UidAuthorization, WaitDeadline, WaitOutcome,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -36,6 +37,7 @@ fn submit_delivery() -> SubmitDelivery {
         single_flow_recipient: FlowIdentifier::from("57a7aa"),
         message_body: MessageBody::from("one bounded recipient"),
         wait_deadline: WaitDeadline::AtUnixMillis(1_726_400_000_000),
+        delivery_mode_selection: DeliveryModeSelection::Raw,
     }
 }
 
@@ -139,6 +141,11 @@ fn single_recipient_delivery_wait_cancel_and_exact_receipt_restore_from_fresh_pe
         delivery_attempt_id: "attempt-0042".to_owned(),
         durable_submission_receipt: "durable-0042".to_owned(),
         wait_outcome: WaitOutcome::WaitingTooLong,
+        delivery_visibility: DeliveryVisibility::RawUnlocked(RawDeliveryVisibility {
+            delivery_lock_state: DeliveryLockState::Unlocked,
+            uid_authorization: UidAuthorization::UidAuthorized,
+            sender_attribution: SenderAttribution::Unattributed,
+        }),
     });
     let outgoing = submitted.signalize().expect("archive durable submission");
     assert_eq!(
@@ -193,6 +200,33 @@ fn single_recipient_delivery_wait_cancel_and_exact_receipt_restore_from_fresh_pe
             .expect("restore exact receipt state"),
         queried
     );
+}
+
+#[test]
+fn raw_visibility_is_explicitly_unlocked_uid_authorized_and_unattributed() {
+    let raw = DeliveryVisibility::RawUnlocked(RawDeliveryVisibility {
+        delivery_lock_state: DeliveryLockState::Unlocked,
+        uid_authorization: UidAuthorization::UidAuthorized,
+        sender_attribution: SenderAttribution::Unattributed,
+    });
+    assert!(matches!(
+        raw,
+        DeliveryVisibility::RawUnlocked(RawDeliveryVisibility {
+            delivery_lock_state: DeliveryLockState::Unlocked,
+            uid_authorization: UidAuthorization::UidAuthorized,
+            sender_attribution: SenderAttribution::Unattributed,
+        })
+    ));
+}
+
+#[test]
+fn unavailable_flow_lock_does_not_downgrade_to_raw_or_mint_a_verified_sender() {
+    let unavailable = DeliveryVisibility::FlowLockUnavailable;
+    assert!(matches!(
+        unavailable,
+        DeliveryVisibility::FlowLockUnavailable
+    ));
+    assert!(!matches!(unavailable, DeliveryVisibility::RawUnlocked(_)));
 }
 
 #[test]
