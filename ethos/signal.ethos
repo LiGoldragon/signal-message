@@ -317,8 +317,7 @@ RawDeliveryVisibility.{DeliveryLockState
 UidAuthorization
 SenderAttribution}
 DeliveryVisibility.[RawUnlocked.RawDeliveryVisibility
-FlowLocked
-FlowLockUnavailable]
+FlowLocked]
 SubmitDelivery.{SourceEventIdentifier
 SingleFlowRecipient
 MessageBody
@@ -331,6 +330,8 @@ WaitOutcome
 DeliveryVisibility}
 SubmitDeliveryRejection.[MissingDefaultDeadline
 InvalidDeadline
+RawUnauthorized
+FlowLockUnavailable
 StoreRejected]
 CancelPending.{DeliveryRequestId
 DeliveryAttemptId}

@@ -793,7 +793,6 @@ pub struct RawDeliveryVisibility {
 pub enum DeliveryVisibility {
     RawUnlocked(RawDeliveryVisibility),
     FlowLocked,
-    FlowLockUnavailable,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
@@ -821,6 +820,8 @@ pub struct SubmitDeliveryResult {
 pub enum SubmitDeliveryRejection {
     MissingDefaultDeadline,
     InvalidDeadline,
+    RawUnauthorized,
+    FlowLockUnavailable,
     StoreRejected,
 }
 #[rustfmt::skip]

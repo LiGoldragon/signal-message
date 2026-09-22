@@ -220,13 +220,17 @@ fn raw_visibility_is_explicitly_unlocked_uid_authorized_and_unattributed() {
 }
 
 #[test]
-fn unavailable_flow_lock_does_not_downgrade_to_raw_or_mint_a_verified_sender() {
-    let unavailable = DeliveryVisibility::FlowLockUnavailable;
-    assert!(matches!(
-        unavailable,
-        DeliveryVisibility::FlowLockUnavailable
-    ));
-    assert!(!matches!(unavailable, DeliveryVisibility::RawUnlocked(_)));
+fn unavailable_or_unauthorized_delivery_is_a_typed_rejection_never_a_submission() {
+    for rejection in [
+        signal_message::SubmitDeliveryRejection::RawUnauthorized,
+        signal_message::SubmitDeliveryRejection::FlowLockUnavailable,
+    ] {
+        let response = Response::DeliverySubmissionRejected(rejection.clone());
+        let peer =
+            Signal::<Response>::from(response.signalize().expect("archive").bytes().to_vec());
+        assert_eq!(peer.restore().expect("restore typed refusal"), response);
+        assert!(!matches!(response, Response::DeliverySubmitted(_)));
+    }
 }
 
 #[test]
