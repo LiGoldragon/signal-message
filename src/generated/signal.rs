@@ -659,10 +659,32 @@ pub enum ReceiptKind {
     FileOnly,
 }
 #[rustfmt::skip]
+pub type RequestedFlowIdentifier = FlowIdentifier;
+#[rustfmt::skip]
+pub type ActualFlowIdentifier = FlowIdentifier;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ActualFlowSelection {
+    Selected(ActualFlowIdentifier),
+    None,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum RecipientDisposition {
+    Accepted,
+    HeldRetryable,
+    TerminalRefused,
+    Uncertain,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct RecipientReceipt {
-    pub flow_identifier: FlowIdentifier,
+    pub requested_flow_identifier: RequestedFlowIdentifier,
+    pub actual_flow_selection: ActualFlowSelection,
+    pub recipient_disposition: RecipientDisposition,
     pub receipt_kind: ReceiptKind,
 }
 #[rustfmt::skip]

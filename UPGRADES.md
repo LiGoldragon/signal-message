@@ -1,5 +1,34 @@
 # UPGRADES
 
+## 4.0.0 → 5.0.0 — recipient delivery disposition
+
+### What breaks
+
+`RecipientReceipt` has a new archived shape. Its former `FlowIdentifier` field
+is now the requested identity, exposed as `RequestedFlowIdentifier`. Each
+receipt also carries an `ActualFlowSelection` and a `RecipientDisposition`.
+The four dispositions are `Accepted`, `HeldRetryable`, `TerminalRefused`, and
+`Uncertain`.
+
+The existing `ReceiptKind` remains a separate evidence grade, and
+`DeliveryReport.SourceEventIdentifier` remains the idempotency identity. The
+contract does not expose Flow's aspect topology, hop plan, or launch state;
+the selected actual Flow and disposition are Message's summary of the
+producer decision.
+
+### Migrating
+
+Recompile every producer and consumer together. Producers must preserve the
+requested Flow identity, set `ActualFlowSelection::Selected` whenever Flow
+selected an actual target (including a reroute), and use `None` when no actual
+Flow was selected. They must map their decision to one disposition without
+upgrading the independently observed `ReceiptKind` evidence grade.
+
+Consumers must stop reading `RecipientReceipt.flow_identifier` and instead
+read `requested_flow_identifier`, then inspect `actual_flow_selection` and
+`recipient_disposition`. Archived 4.0.0 bytes are not readable as 5.0.0
+`RecipientReceipt` values and require producer-side migration or replay.
+
 ## 2.0.1 → 3.0.0 — shared frame, arity-split codec
 
 ### What breaks

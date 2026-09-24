@@ -1,11 +1,11 @@
 use signal_message::{
-    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
-    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReport, DeliveryRequest,
-    FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment, FlowIdleAnnouncement, MessageBody,
-    MessageKind, MessageRecipient, MessageSubmission, PeerBody, PeerBodySha256, PeerEnvelope,
-    PeerSender, PeerSourcePath, PromptInterpretationSelection, PromptVariant, Query, ReceiptKind,
-    RecipientReceipt, Response, Restorable, Signal, Signalizable, ThreadSelection,
-    TypedPromptEnvelope,
+    ActualFlowSelection, ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget,
+    CompactReceipt, Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReport,
+    DeliveryRequest, FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment,
+    FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient, MessageSubmission, PeerBody,
+    PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath, PromptInterpretationSelection,
+    PromptVariant, Query, ReceiptKind, RecipientDisposition, RecipientReceipt, Response,
+    Restorable, Signal, Signalizable, ThreadSelection, TypedPromptEnvelope,
 };
 fn submission() -> MessageSubmission {
     MessageSubmission {
@@ -159,10 +159,36 @@ fn nexus_delivery_and_typed_receipts_restore_from_fresh_peer_bytes() {
 
     let reply = Response::DeliveryRecorded(DeliveryReport {
         source_event_identifier: "fac697-0042".to_owned(),
-        recipient_receipts: vec![RecipientReceipt {
-            flow_identifier: FlowIdentifier::from("da1e3f"),
-            receipt_kind: ReceiptKind::TranscriptWitnessed,
-        }],
+        recipient_receipts: vec![
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("accepted"),
+                actual_flow_selection: ActualFlowSelection::Selected(FlowIdentifier::from(
+                    "accepted",
+                )),
+                recipient_disposition: RecipientDisposition::Accepted,
+                receipt_kind: ReceiptKind::TranscriptWitnessed,
+            },
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("held"),
+                actual_flow_selection: ActualFlowSelection::None,
+                recipient_disposition: RecipientDisposition::HeldRetryable,
+                receipt_kind: ReceiptKind::Parked,
+            },
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("refused"),
+                actual_flow_selection: ActualFlowSelection::None,
+                recipient_disposition: RecipientDisposition::TerminalRefused,
+                receipt_kind: ReceiptKind::FileOnly,
+            },
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("requested"),
+                actual_flow_selection: ActualFlowSelection::Selected(FlowIdentifier::from(
+                    "flow-selected-reroute",
+                )),
+                recipient_disposition: RecipientDisposition::Uncertain,
+                receipt_kind: ReceiptKind::Accepted,
+            },
+        ],
     });
     let outgoing = reply.signalize().expect("archive delivery report");
     assert_eq!(
@@ -171,6 +197,49 @@ fn nexus_delivery_and_typed_receipts_restore_from_fresh_peer_bytes() {
             .expect("restore delivery report"),
         reply
     );
+}
+
+#[cfg(feature = "datom")]
+#[test]
+fn recipient_dispositions_and_actual_flow_selection_round_trip_as_datom() {
+    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
+    use protos::{Protosizable, ReaderBudget, Textualizable};
+
+    let report = DeliveryReport {
+        source_event_identifier: "idempotency-event-0042".to_owned(),
+        recipient_receipts: vec![
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("requested-flow"),
+                actual_flow_selection: ActualFlowSelection::Selected(FlowIdentifier::from(
+                    "actual-flow",
+                )),
+                recipient_disposition: RecipientDisposition::Accepted,
+                receipt_kind: ReceiptKind::TranscriptWitnessed,
+            },
+            RecipientReceipt {
+                requested_flow_identifier: FlowIdentifier::from("waiting-flow"),
+                actual_flow_selection: ActualFlowSelection::None,
+                recipient_disposition: RecipientDisposition::HeldRetryable,
+                receipt_kind: ReceiptKind::Parked,
+            },
+        ],
+    };
+    let rendered = report.clone().datomize(vec![]).protosize().textualize();
+    assert!(rendered.contains("idempotency-event-0042"));
+    assert!(rendered.contains("Selected.actual-flow"));
+    assert!(rendered.contains("Accepted"));
+    assert!(rendered.contains("HeldRetryable"));
+
+    let mut pending = Potential::<DeliveryReport>::from(rendered);
+    let restored = pending
+        .actualize(&mut Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 256,
+        })
+        .expect("actualize delivery report");
+    assert_eq!(restored, report);
 }
 
 #[test]
