@@ -635,6 +635,35 @@ pub struct PeerEnvelope {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct PeerRecipientPresentation {
+    pub peer_sender: PeerSender,
+    pub source_event_identifier: SourceEventIdentifier,
+    pub peer_source_path: PeerSourcePath,
+    pub peer_body: PeerBody,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct RelayRecipientPresentation {
+    pub flow_identifier: FlowIdentifier,
+    pub session_identifier: SessionIdentifier,
+    pub transcript_path: TranscriptPath,
+    pub what_living_said: WhatLivingSaid,
+    pub context_about: ContextAbout,
+    pub context_answered: ContextAnswered,
+    pub context_corrected: ContextCorrected,
+    pub timestamp_nanos: TimestampNanos,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum RecipientPresentation {
+    Peer(PeerRecipientPresentation),
+    Relay(RelayRecipientPresentation),
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum ClusterMessage {
     Relay(ClusterRelay),
     Peer(PeerEnvelope),
