@@ -82,6 +82,7 @@ mod datom {
             "SendRejected.BodyRefused.{ 7d41e0 ControlCharacter.14 }",
             "SendRejected.UnknownRecipient.ffffff",
             "SendRejected.RecipientRefused.{ 7d41e0 FlowStopped }",
+            "SendRejected.RecipientRefused.{ 7d41e0 FlowExited }",
             "SendRejected.SenderUnknown",
             "SendRejected.EmptyRecipients",
             "SendRejected.FlowUnreachable",

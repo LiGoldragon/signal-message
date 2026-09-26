@@ -1,5 +1,14 @@
 # UPGRADES
 
+## 7.0.0 → 8.0.0 — a refusal names a Retired or Exited flow
+
+### What breaks
+
+`RecipientRefused` carries `meta-signal-flow` 11.0.0's `DeliveryRejection`,
+which gains `FlowRetired` and `FlowExited` (appended; every earlier tag
+keeps its place). A reader pinned to 7.0.0 cannot decode either. Repin
+`meta-signal-flow` 2ac045c alongside.
+
 ## 5.0.0 → 6.0.0 — a message is just a message
 
 ### What breaks
