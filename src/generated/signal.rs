@@ -1,7 +1,5 @@
 #![allow(dead_code, non_camel_case_types, non_snake_case)]
 #[rustfmt::skip]
-pub type MessageId = String;
-#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Priority {
@@ -42,7 +40,7 @@ pub struct Receipt {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct Submission {
-    pub message_id: MessageId,
+    pub message_id: meta_signal_flow::MessageId,
     pub receipt_vector: std::vec::Vec<Receipt>,
 }
 #[rustfmt::skip]
@@ -88,10 +86,10 @@ pub enum MessageRejection {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Send(SendRequest),
-    Withdraw(MessageId),
-    Acknowledge(MessageId),
-    QueryReceipts(MessageId),
-    Observe(MessageId),
+    Withdraw(meta_signal_flow::MessageId),
+    Acknowledge(meta_signal_flow::MessageId),
+    QueryReceipts(meta_signal_flow::MessageId),
+    Observe(meta_signal_flow::MessageId),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -99,8 +97,8 @@ pub enum Query {
 pub enum Response {
     Submitted(Submission),
     SendRejected(SendRejection),
-    Withdrawn(MessageId),
-    Acknowledged(MessageId),
+    Withdrawn(meta_signal_flow::MessageId),
+    Acknowledged(meta_signal_flow::MessageId),
     Receipts(Submission),
     ReceiptObserved(Receipt),
     MessageRejected(MessageRejection),

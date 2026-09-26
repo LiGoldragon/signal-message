@@ -20,15 +20,17 @@
 ; parked message back. Refused: Flow refused it.
 ;
 ; Withdraw is the sender's, only while parked. Acknowledge is a
-; recipient's. Observe answers the Receipts on open, then a
+; recipient's: the MessageId it names is the one Flow typed at the head of
+; the letter, so a recipient reading its own pane can acknowledge without
+; being told the id another way. The id is declared once, in
+; meta-signal-flow, because Flow renders it into the pane. Observe answers the Receipts on open, then a
 ; ReceiptObserved for every later grade change.
 
 Signal
-[ signal_flow:[ FlowId ] meta_signal_flow:[ Content BodyRefusal DeliveryRejection InterruptWitness ] ]
+[ signal_flow:[ FlowId ] meta_signal_flow:[ MessageId Content BodyRefusal DeliveryRejection InterruptWitness ] ]
 [ Send.SendRequest Withdraw.MessageId Acknowledge.MessageId QueryReceipts.MessageId Observe.MessageId ]
 [ Submitted.Submission SendRejected.SendRejection Withdrawn.MessageId Acknowledged.MessageId Receipts.Submission ReceiptObserved.Receipt MessageRejected.MessageRejection ]
-[ MessageId.String
-  Priority.[ HardAbrupt MiddleAbrupt Soft ]
+[ Priority.[ HardAbrupt MiddleAbrupt Soft ]
   SendRequest.{ Vector<FlowId> Priority Content }
   Grade.[ Submitted Parked Transported Presented Uncertain Read Withdrawn Refused.DeliveryRejection ]
   Receipt.{ FlowId InterruptWitness Grade }
