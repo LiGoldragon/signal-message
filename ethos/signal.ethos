@@ -1,299 +1,37 @@
+; Message ordinary Signal.
+;
+; A message is just a message: a Priority, a Content, and the flows it is
+; for. The sender is never in the payload; Message names it from the peer
+; (Flow's ResolvePeer). Message owns the record, the ledger and the
+; receipts; Flow is the only pane writer, and Message reaches a pane only
+; through Flow's Deliver.
+;
+; Send vets every recipient first (the first refusal fails the whole
+; Send), records the message, then delivers to each recipient and answers
+; each one's Receipt. A recipient that is working (Soft) or whose composer
+; holds text is Parked, and the message lands when Flow shows it at rest.
+;
+; Grades stay separate. Submitted: Message accepted and recorded it.
+; Parked: waiting for the recipient to rest. Transported: Herdr accepted
+; the text for the exact binding. Presented: the recipient was seen
+; reacting on the exact pane. Uncertain: text may have reached the pane
+; and is never retried by itself (meta Redeliver). Read: the recipient's
+; own Acknowledge, the only source of Read. Withdrawn: the sender took a
+; parked message back. Refused: Flow refused it.
+;
+; Withdraw is the sender's, only while parked. Acknowledge is a
+; recipient's. Observe answers the Receipts on open, then a
+; ReceiptObserved for every later grade change.
+
 Signal
-[]
-[ Submit.MessageSubmission SubmitStamped.StampedMessageSubmission QueryInbox.InboxQuery AssignAgentIdentity.AgentIdentityAssignment BindAgentEndpoint.AgentEndpointBinding QueryAgentRegistry.AgentRegistryQuery QueryThread.ThreadQuery SubscribeThread.ThreadSubscription QueryThreads.ThreadIndexQuery FlowDeliver.FlowDeliveryRequest FlowAnnounceIdle.FlowIdleAnnouncement Deliver.DeliveryRequest QueryDeliveryReceipts.DeliveryReceiptQuery ]
-[ SubmissionAccepted.SubmissionAcceptance SubmissionRejected.SubmissionRejection InboxListing.InboxListingReply AgentIdentityAssigned.AssignedAgentIdentity AgentEndpointBound.BoundAgentEndpoint AgentRegistryListing.AgentRegistryListingReply AgentRegistryRejected.AgentRegistryRejection MessageRequestUnimplemented.MessageRequestUnimplementedReply Error.ErrorReport ThreadListing.ThreadContents ThreadSubscribed.ThreadSubscriptionAcknowledgment ThreadIndexListing.ThreadIndexEntries ThreadRejected.ThreadRejection DeliveryQueued.DeliveryQueuedAcknowledgment DeliveryLanded.CompactReceipt FlowDeliveryRejected.FlowDeliveryRejection FlowIdleAcknowledged.FlowIdleAcknowledgment DeliveryRecorded.DeliveryReport DeliveryRejected.DeliveryAddressSelectionRejection DeliveryReceiptListing.DeliveryReceiptListing DeliveryReceiptQueryRejected.DeliveryReceiptQueryRejection ]
-[Messages.Vector<InboxEntry>
-EngineIdentifier.String
-MessageSocketPath.WirePath
-IdentityProvenance.[Seated
-Reseated]
-InternalComponentInstanceOrigin.{ComponentName
-ComponentInstanceName}
-MessageRecipient.String
-ComponentIngresses.Vector<ComponentMessageIngress>
-ThreadRelation.{RepositoryName
-FeatureBranchName}
-InboxQuery.MessageRecipient
-BoundAgentEndpoint.AgentIdentifier
-MessageKind.[Send
-Inbox]
-MessageOperationKind.[QueryThreads
-Submit
-QueryThread
-SubscribeThread
-QueryInbox
-QueryAgentRegistry
-SubmitStamped
-AssignAgentIdentity
-BindAgentEndpoint
-FlowDeliver
-FlowAnnounceIdle]
-InboxEntry.{MessageSlot
-MessageSender
-MessageBody
-ThreadSelection
-StampedAt}
-ThreadRelationSelection.[None
-Related.ThreadRelation]
-ResumeIdentity.String
-StampedAt.TimestampNanos
-UnixUserIdentifier.Integer
-MessageRequestUnimplementedReply.{MessageOperationKind
-MessageUnimplementedReason}
-ComponentInstanceName.String
-RepositoryName.String
-ThreadIndexQuery.[All]
-ProcessPinSelection.[Pinned.HarnessProcessPin
-None]
-ParticipantName.String
-HarnessStartTime.Integer
-AgentDeathMark.[NotDead
-Killed]
-SocketMode.Integer
-EndpointSelection.[Bound.AgentEndpoint
-None]
-HarnessProcessPin.{HarnessPid
-HarnessStartTime}
-OwnerIdentity.[UnixUser.UnixUserIdentifier
-System.SystemPrincipal]
-ResumeSelection.[Resumed.ResumeIdentity
-None]
-ThreadSubscriptionAcknowledgment.{ThreadName
-ParticipantName}
-HostName.String
-ThreadRejectionReason.[UnknownThread
-StoreRejected]
-ThreadEntries.Vector<ThreadEntry>
-MessageUnimplementedReason.[DependencyMissing.DependencyKind
-NotInPrototypeScope
-ResourceUnavailable.ResourceKind]
-MessageBody.String
-ThreadIndexEntries.{Threads}
-MessageCount.Integer
-AgentEndpoint.{AgentEndpointKind
-EndpointPath}
-Host.HostName
-DependencyKind.[Mind
-Router
-Harness
-Terminal]
-AgentIdentityAssignment.{AgentIdentifier
-ProcessPinSelection
-ResumeSelection}
-AgentRegistryListingReply.{Entries}
-AgentRegistryEntry.{AgentIdentifier
-EndpointSelection
-ResumeSelection
-AgentDeathMark
-ProcessPinSelection}
-ComponentMessageIngress.{InternalComponentInstanceOrigin
-IngressSocketPath
-SocketMode}
-SubmissionAcceptance.MessageSlot
-ThreadSummary.{ThreadName
-ThreadRelationSelection
-Participants
-MessageCount}
-AgentRegistryRejection.AgentRegistryRejectionReason
-TimestampNanos.Integer
-AssignedAgentIdentity.{AgentIdentifier
-IdentityProvenance}
-ErrorReport.ErrorMessage
-Entries.Vector<AgentRegistryEntry>
-MessageSubmission.{MessageRecipient
-MessageKind
-MessageBody
-ThreadSelection}
-IngressSocketPath.WirePath
-MessageOrigin.[External.ConnectionClass
-InternalComponentInstance.InternalComponentInstanceOrigin
-Internal.ComponentName]
-MessageSlot.Integer
-ErrorMessage.String
-InboxListingReply.{Messages}
-ThreadRejection.ThreadRejectionReason
-SubmissionRejectionReason.[RecipientNotFound
-StoreRejected]
-ThreadSelection.[Named.ThreadName
-None]
-ResourceKind.[RouterSocket
-Store
-PeerCredentials
-MessageSocket]
-AgentEndpointKind.[HarnessSocket
-PtySocket]
-HarnessPid.Integer
-AgentIdentifier.String
-ConnectionClass.[Owner
-Network.NetworkPeer
-OtherPersona.OtherPersonaEngine
-System.SystemPrincipal
-NonOwnerUser.UnixUserIdentifier]
-AgentEndpointBinding.{AgentIdentifier
-AgentEndpoint
-HarnessPid
-HarnessStartTime}
-ThreadSubscription.{ThreadName
-ParticipantName
-ThreadRelationSelection}
-Participants.Vector<ParticipantName>
-AgentRegistryQuery.[All
-ByAgent.AgentIdentifier]
-AgentRegistryRejectionReason.[UnknownAgentIdentifier
-StoreRejected]
-OtherPersonaEngine.{EngineIdentifier
-Host}
-EndpointPath.WirePath
-SubmissionRejection.SubmissionRejectionReason
-MessageSocketMode.SocketMode
-SupervisionSocketMode.SocketMode
-FeatureBranchName.String
-ComponentName.[Introspect
-Terminal
-System
-Mind
-Spirit
-Message
-Harness
-Router
-Orchestrate]
-WirePath.String
-ThreadEntry.{MessageSlot
-MessageSender
-MessageBody
-StampedAt}
-NetworkPeer.String
-StampedMessageSubmission.{MessageSubmission
-MessageOrigin
-StampedAt}
-SupervisionSocketPath.WirePath
-MessageDaemonConfiguration.{MessageSocketPath
-MessageSocketMode
-SupervisionSocketPath
-SupervisionSocketMode
-RouterSocketPath
-ComponentIngresses
-OwnerIdentity}
-MessageSender.String
-RouterSocketPath.WirePath
-ThreadName.String
-SystemPrincipal.String
-Threads.Vector<ThreadSummary>
-ThreadQuery.ThreadName
-ThreadContents.{ThreadName
-ThreadRelationSelection
-Participants
-ThreadEntries}
-PromptVariant.[HumanPrompt
-PeerMessage
-DeliveryReceipt]
-SourceEventIdentifier.String
-RawPromptText.String
-PromptInterpretationSelection.[Interpreted.MessageBody
-None]
-TypedPromptEnvelope.{PromptVariant
-SourceEventIdentifier
-RawPromptText
-PromptInterpretationSelection}
-TargetFlowName.String
-FlowDeliveryRequest.{TypedPromptEnvelope
-TargetFlowName}
-FlowIdleAnnouncement.{TargetFlowName}
-DeliveryQueueState.[Parked]
-DeliveryQueuedAcknowledgment.{SourceEventIdentifier
-TargetFlowName
-DeliveryQueueState}
-LandedAt.TimestampNanos
-ByteCount.Integer
-CompactReceipt.{SourceEventIdentifier
-LandedAt
-ByteCount}
-LandedReceipts.Vector<CompactReceipt>
-FlowIdleAcknowledgment.{TargetFlowName
-LandedReceipts}
-FlowDeliveryRejectionReason.[UnknownFlow
-StoreRejected]
-FlowDeliveryRejection.FlowDeliveryRejectionReason
-ClusterTarget.[Primary
-Secondary
-Core]
-FlowIdentifier.String
-SessionIdentifier.String
-TranscriptPath.String
-PromptFirstSixWords.String
-PromptLastSixWords.String
-PromptSha256.String
-ClusterMember.{FlowIdentifier
-SessionIdentifier}
-ClusterMembers.Vector<ClusterMember>
-Context.{FlowIdentifier
-SourceTurnIdentifier
-TranscriptPath
-PromptSha256
-WhatLivingSaid
-ContextAbout
-ContextAnswered
-ContextCorrected
-ContextUncertainties}
-SourceTurnIdentifier.String
-WhatLivingSaid.String
-ContextAbout.String
-ContextAnswered.String
-ContextCorrected.String
-ContextUncertainties.Vector<String>
-ClusterRelay.{FlowIdentifier
-SessionIdentifier
-TranscriptPath
-PromptFirstSixWords
-PromptLastSixWords
-PromptSha256
-Context
-TimestampNanos
-ClusterTarget
-ClusterMembers}
-PeerSender.{FlowIdentifier
-SessionIdentifier}
-PeerSourcePath.String
-PeerBodySha256.String
-PeerBody.String
-PeerEnvelope.{PeerSender
-SourceEventIdentifier
-PeerSourcePath
-PeerBodySha256
-PeerBody}
-ClusterMessage.[Relay.ClusterRelay
-Peer.PeerEnvelope]
-TargetFlows.Vector<FlowIdentifier>
-DeliveryRequest.{SourceEventIdentifier
-ClusterMessage
-TargetFlows}
-ReceiptKind.[Accepted
-TranscriptWitnessed
-Parked
-FileOnly]
-RecipientReceipt.{FlowIdentifier
-ReceiptKind}
-RecipientReceipts.Vector<RecipientReceipt>
-DeliveryReport.{SourceEventIdentifier
-RecipientReceipts}
-DeliveryReceiptQuery.{SourceEventIdentifier
-TargetFlows}
-DeliveryReceiptRecord.{FlowIdentifier
-ReceiptKind
-Retryable}
-Retryable.Boolean
-DeliveryReceiptState.[Recorded.DeliveryReceiptRecord
-Missing.FlowIdentifier]
-DeliveryReceiptStates.Vector<DeliveryReceiptState>
-DeliveryReceiptListing.{SourceEventIdentifier
-DeliveryReceiptStates}
-DeliveryAddressSelectionRejection.[EmptySourceEventIdentifier
-ReservedSourceEventIdentifier
-SourceEventIdentifierContainsNull
-EmptyTargetFlows
-EmptyTargetFlowIdentifier
-DuplicateTargetFlows
-TargetFlowIdentifierContainsNull
-TooManyTargetFlows]
-DeliveryReceiptQueryRejection.[InvalidAddressSelection.DeliveryAddressSelectionRejection
-StoreRejected]]
+[ signal_flow:[ FlowId ] meta_signal_flow:[ Content BodyRefusal DeliveryRejection InterruptWitness ] ]
+[ Send.SendRequest Withdraw.MessageId Acknowledge.MessageId QueryReceipts.MessageId Observe.MessageId ]
+[ Submitted.Submission SendRejected.SendRejection Withdrawn.MessageId Acknowledged.MessageId Receipts.Submission ReceiptObserved.Receipt MessageRejected.MessageRejection ]
+[ MessageId.String
+  Priority.[ HardAbrupt MiddleAbrupt Soft ]
+  SendRequest.{ Vector<FlowId> Priority Content }
+  Grade.[ Submitted Parked Transported Presented Uncertain Read Withdrawn Refused.DeliveryRejection ]
+  Receipt.{ FlowId InterruptWitness Grade }
+  Submission.{ MessageId Vector<Receipt> }
+  SendRejection.[ SenderUnknown EmptyRecipients UnknownRecipient.FlowId BodyRefused.{ FlowId BodyRefusal } RecipientRefused.{ FlowId DeliveryRejection } FlowUnreachable StoreRefused ]
+  MessageRejection.[ UnknownMessage NotSender NotRecipient NotParked NotUncertain FlowUnreachable StoreRefused ] ]

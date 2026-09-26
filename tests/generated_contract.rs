@@ -1,395 +1,113 @@
-use signal_message::{
-    ByteViewable, ClusterMember, ClusterMessage, ClusterRelay, ClusterTarget, CompactReceipt,
-    Context, DeliveryQueueState, DeliveryQueuedAcknowledgment, DeliveryReceiptListing,
-    DeliveryReceiptQuery, DeliveryReceiptRecord, DeliveryReceiptState, DeliveryReport,
-    DeliveryRequest, FlowDeliveryRequest, FlowIdentifier, FlowIdleAcknowledgment,
-    FlowIdleAnnouncement, MessageBody, MessageKind, MessageRecipient, MessageSubmission, PeerBody,
-    PeerBodySha256, PeerEnvelope, PeerSender, PeerSourcePath, PromptInterpretationSelection,
-    PromptVariant, Query, ReceiptKind, RecipientReceipt, Response, Restorable, Signal,
-    Signalizable, ThreadSelection, TypedPromptEnvelope,
-};
-fn submission() -> MessageSubmission {
-    MessageSubmission {
-        message_recipient: MessageRecipient::from("router"),
-        message_kind: MessageKind::Send,
-        message_body: MessageBody::from("current signal"),
-        thread_selection: ThreadSelection::None,
+//! The falsifiable specification of every record kind: each one lands as a
+//! concrete datom that round-trips, and every request and reply survives
+//! the rkyv archive.
+
+use meta_signal_flow::{Content, DeliveryRejection, InterruptWitness};
+use signal_message::{Grade, Priority, Query, Receipt, Response, SendRequest, Submission};
+
+fn archived_query(query: &Query) -> Query {
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(query).expect("archives");
+    rkyv::from_bytes::<Query, rkyv::rancor::Error>(&bytes).expect("restores")
+}
+
+fn archived_response(response: &Response) -> Response {
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(response).expect("archives");
+    rkyv::from_bytes::<Response, rkyv::rancor::Error>(&bytes).expect("restores")
+}
+
+#[test]
+fn a_send_request_survives_the_archive() {
+    let query = Query::Send(SendRequest {
+        flow_id_vector: vec!["7d41e0".into(), "88475f".into()],
+        priority: Priority::Soft,
+        content: Content::Text("Stage 1 is deployed; run the tier tests.".into()),
+    });
+    assert_eq!(archived_query(&query), query);
+}
+
+#[test]
+fn a_refused_receipt_carries_flows_own_rejection() {
+    let response = Response::ReceiptObserved(Receipt {
+        flow_id: "7d41e0".into(),
+        interrupt_witness: InterruptWitness::NotRequested,
+        grade: Grade::Refused(DeliveryRejection::RecipientBlocked),
+    });
+    assert_eq!(archived_response(&response), response);
+    let submitted = Response::Submitted(Submission {
+        message_id: "m-7f3a2c".into(),
+        receipt_vector: vec![],
+    });
+    assert_ne!(archived_response(&submitted), response);
+}
+
+#[cfg(feature = "datom")]
+mod datom {
+    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
+    use protos::{Protosizable, ReaderBudget, Textualizable};
+    use signal_message::{Query, Response};
+
+    fn budget() -> Budget {
+        Budget {
+            remaining: 4096,
+            reader: ReaderBudget { remaining: 4096 },
+            depth: 0,
+            maximum_depth: 1024,
+        }
     }
-}
-fn flow_delivery_request() -> FlowDeliveryRequest {
-    FlowDeliveryRequest {
-        typed_prompt_envelope: TypedPromptEnvelope {
-            prompt_variant: PromptVariant::PeerMessage,
-            source_event_identifier: "msg-0042".to_string(),
-            raw_prompt_text: "land this on the target flow".to_string(),
-            prompt_interpretation_selection: PromptInterpretationSelection::None,
-        },
-        target_flow_name: "57a7aa".to_string(),
+
+    #[test]
+    fn every_request_kind_has_a_concrete_datom() {
+        for text in [
+            "Send.{ [ 7d41e0 ] Soft Text.«Stage 1 is deployed; run the tier tests.» }",
+            "Send.{ [ 7d41e0 88475f ] HardAbrupt Psyche.{ «on build hosts» «Prometheus should be doing the builds.» } }",
+            "Send.{ [ 7d41e0 ] MiddleAbrupt Text./compact }",
+            "Withdraw.m-7f3a2c",
+            "Acknowledge.m-7f3a2c",
+            "QueryReceipts.m-7f3a2c",
+            "Observe.m-7f3a2c",
+        ] {
+            let query = Potential::<Query>::from(text)
+                .actualize(&mut budget())
+                .unwrap_or_else(|error| panic!("{text}: {error:?}"));
+            assert_eq!(query.datomize(vec![]).protosize().textualize(), text);
+        }
     }
-}
 
-fn cluster_relay() -> ClusterMessage {
-    ClusterMessage::Relay(ClusterRelay {
-        flow_identifier: "cf7879".to_owned(),
-        session_identifier: "01a0a715".to_owned(),
-        transcript_path: "/transcripts/primary.jsonl".to_owned(),
-        prompt_first_six_words: "Well, fix whatever it is that".to_owned(),
-        prompt_last_six_words: "it's right there in the transcript.".to_owned(),
-        prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7"
-            .to_owned(),
-        context: Context {
-            flow_identifier: "cf7879".to_owned(),
-            source_turn_identifier: "turn-01".to_owned(),
-            transcript_path: "/transcripts/primary.jsonl".to_owned(),
-            prompt_sha256: "98fbcb59fcbaecd28f9000aadab5439f3a4a010a8b5ad9ee97c608b16d9840d7"
-                .to_owned(),
-            what_living_said: "Start Luna and derive the context.".to_owned(),
-            context_about: "The selected request asks for transcript context.".to_owned(),
-            context_answered: "The model-selection question is answered by Luna.".to_owned(),
-            context_corrected: "No correction is identified from the supplied transcript."
-                .to_owned(),
-            context_uncertainties: vec!["The source does not settle delivery behavior.".to_owned()],
-        },
-        timestamp_nanos: 1_726_400_000_000_000_000,
-        cluster_target: ClusterTarget::Primary,
-        cluster_members: vec![ClusterMember {
-            flow_identifier: "57a7aa".to_owned(),
-            session_identifier: "57a7aa02-e52d-4266-8746-6770ff770d11".to_owned(),
-        }],
-    })
-}
-
-fn peer_message() -> ClusterMessage {
-    ClusterMessage::Peer(PeerEnvelope {
-        peer_sender: PeerSender {
-            flow_identifier: "efa157".to_owned(),
-            session_identifier: "efa15708-dc5d-42ce-af62-8ffb84c9815e".to_owned(),
-        },
-        source_event_identifier: "msg_01a0aa9c-b778-76d1-8b1f-2bb0d6430fb2".to_owned(),
-        peer_source_path: PeerSourcePath::from("flows/efa157/log.md"),
-        peer_body_sha256: PeerBodySha256::from(
-            "27bed00000000000000000000000000000000000000000000000000000000000",
-        ),
-        peer_body: PeerBody::from("First peer line.\nSecond peer line carries the quoted body."),
-    })
-}
-#[test]
-fn message_query_and_response_restore_from_fresh_peer_bytes() {
-    let query = Query::Submit(submission());
-    let outgoing = query.signalize().expect("archive query");
-    assert!(!outgoing.bytes().is_empty());
-    let incoming = Signal::<Query>::from(outgoing.bytes().to_vec());
-    assert_eq!(incoming.restore().expect("restore query"), query);
-    let response = Response::SubmissionAccepted(41);
-    let outgoing = response.signalize().expect("archive response");
-    let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
-    assert_eq!(incoming.restore().expect("restore response"), response);
-}
-#[test]
-fn flow_deliver_query_and_two_stage_reply_restore_from_fresh_peer_bytes() {
-    let query = Query::FlowDeliver(flow_delivery_request());
-    let outgoing = query.signalize().expect("archive query");
-    assert!(!outgoing.bytes().is_empty());
-    let incoming = Signal::<Query>::from(outgoing.bytes().to_vec());
-    assert_eq!(incoming.restore().expect("restore query"), query);
-
-    let queued = Response::DeliveryQueued(DeliveryQueuedAcknowledgment {
-        source_event_identifier: "msg-0042".to_string(),
-        target_flow_name: "57a7aa".to_string(),
-        delivery_queue_state: DeliveryQueueState::Parked,
-    });
-    let outgoing = queued.signalize().expect("archive queued response");
-    let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
-    assert_eq!(incoming.restore().expect("restore queued response"), queued);
-
-    let landed = Response::DeliveryLanded(CompactReceipt {
-        source_event_identifier: "msg-0042".to_string(),
-        landed_at: 1_726_400_000_000_000_000,
-        byte_count: 29,
-    });
-    let outgoing = landed.signalize().expect("archive landed response");
-    let incoming = Signal::<Response>::from(outgoing.bytes().to_vec());
-    assert_eq!(incoming.restore().expect("restore landed response"), landed);
-}
-
-#[test]
-fn flow_idle_announcement_and_receipts_restore_from_fresh_peer_bytes() {
-    let query = Query::FlowAnnounceIdle(FlowIdleAnnouncement {
-        target_flow_name: "57a7aa".to_owned(),
-    });
-    let outgoing = query.signalize().expect("archive idle announcement");
-    assert_eq!(
-        Signal::<Query>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore idle announcement"),
-        query
-    );
-
-    let reply = Response::FlowIdleAcknowledged(FlowIdleAcknowledgment {
-        target_flow_name: "57a7aa".to_owned(),
-        landed_receipts: vec![CompactReceipt {
-            source_event_identifier: "msg-0042".to_owned(),
-            landed_at: 1_726_400_000_000_000_000,
-            byte_count: 29,
-        }],
-    });
-    let outgoing = reply.signalize().expect("archive idle reply");
-    assert_eq!(
-        Signal::<Response>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore idle reply"),
-        reply
-    );
-}
-
-#[test]
-fn nexus_delivery_and_typed_receipts_restore_from_fresh_peer_bytes() {
-    let request = DeliveryRequest {
-        source_event_identifier: "fac697-0042".to_owned(),
-        cluster_message: peer_message(),
-        target_flows: vec![FlowIdentifier::from("da1e3f")],
-    };
-    let query = Query::Deliver(request);
-    let outgoing = query.signalize().expect("archive delivery query");
-    assert_eq!(
-        Signal::<Query>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore delivery query"),
-        query
-    );
-
-    let reply = Response::DeliveryRecorded(DeliveryReport {
-        source_event_identifier: "fac697-0042".to_owned(),
-        recipient_receipts: vec![RecipientReceipt {
-            flow_identifier: FlowIdentifier::from("da1e3f"),
-            receipt_kind: ReceiptKind::TranscriptWitnessed,
-        }],
-    });
-    let outgoing = reply.signalize().expect("archive delivery report");
-    assert_eq!(
-        Signal::<Response>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore delivery report"),
-        reply
-    );
-}
-
-#[test]
-fn receipt_query_and_retryability_restore_from_fresh_peer_bytes() {
-    let query = Query::QueryDeliveryReceipts(DeliveryReceiptQuery {
-        source_event_identifier: "fac697-0042".to_owned(),
-        target_flows: vec![
-            FlowIdentifier::from("da1e3f"),
-            FlowIdentifier::from("missing"),
-        ],
-    });
-    let outgoing = query.signalize().expect("archive receipt query");
-    assert_eq!(
-        Signal::<Query>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore receipt query"),
-        query
-    );
-
-    let reply = Response::DeliveryReceiptListing(DeliveryReceiptListing {
-        source_event_identifier: "fac697-0042".to_owned(),
-        delivery_receipt_states: vec![
-            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
-                flow_identifier: FlowIdentifier::from("da1e3f"),
-                receipt_kind: ReceiptKind::Parked,
-                retryable: false,
-            }),
-            DeliveryReceiptState::Missing(FlowIdentifier::from("missing")),
-        ],
-    });
-    let outgoing = reply.signalize().expect("archive receipt listing");
-    assert_eq!(
-        Signal::<Response>::from(outgoing.bytes().to_vec())
-            .restore()
-            .expect("restore receipt listing"),
-        reply
-    );
-}
-
-#[cfg(feature = "datom")]
-#[test]
-fn receipt_query_listing_and_rejection_have_canonical_datom_forms() {
-    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
-    use protos::{Protosizable, ReaderBudget, Textualizable};
-
-    let query = Query::QueryDeliveryReceipts(DeliveryReceiptQuery {
-        source_event_identifier: "event-42".to_owned(),
-        target_flows: vec![
-            FlowIdentifier::from("accepted"),
-            FlowIdentifier::from("parked"),
-        ],
-    });
-    let listing = Response::DeliveryReceiptListing(DeliveryReceiptListing {
-        source_event_identifier: "event-42".to_owned(),
-        delivery_receipt_states: vec![
-            DeliveryReceiptState::Missing(FlowIdentifier::from("missing")),
-            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
-                flow_identifier: FlowIdentifier::from("accepted"),
-                receipt_kind: ReceiptKind::Accepted,
-                retryable: false,
-            }),
-            DeliveryReceiptState::Recorded(DeliveryReceiptRecord {
-                flow_identifier: FlowIdentifier::from("parked"),
-                receipt_kind: ReceiptKind::Parked,
-                retryable: true,
-            }),
-        ],
-    });
-    let rejection = Response::DeliveryReceiptQueryRejected(
-        signal_message::DeliveryReceiptQueryRejection::InvalidAddressSelection(
-            signal_message::DeliveryAddressSelectionRejection::ReservedSourceEventIdentifier,
-        ),
-    );
-    for (response, canonical) in [
-        (
-            listing,
-            "DeliveryReceiptListing.{ event-42 [ Missing.missing Recorded.{ accepted Accepted False } Recorded.{ parked Parked True } ] }",
-        ),
-        (
-            rejection,
-            "DeliveryReceiptQueryRejected.InvalidAddressSelection.ReservedSourceEventIdentifier",
-        ),
-    ] {
-        let mut pending = Potential::<Response>::from(canonical);
-        let parsed = pending
-            .actualize(&mut Budget {
-                remaining: 4096,
-                reader: ReaderBudget { remaining: 4096 },
-                depth: 0,
-                maximum_depth: 256,
-            })
-            .expect("parse canonical receipt response");
-        assert_eq!(parsed, response, "{canonical}");
-        let rendered = response.datomize(vec![]).protosize().textualize();
-        assert_eq!(rendered, canonical);
-        let mut pending = Potential::<Response>::from(rendered.clone());
-        let restored = pending
-            .actualize(&mut Budget {
-                remaining: 4096,
-                reader: ReaderBudget { remaining: 4096 },
-                depth: 0,
-                maximum_depth: 256,
-            })
-            .expect("actualize canonical receipt response");
-        assert_eq!(restored, parsed, "{rendered}");
+    #[test]
+    fn every_reply_kind_has_a_concrete_datom() {
+        for text in [
+            "Submitted.{ m-7f3a2c [ { 7d41e0 NotRequested Parked } ] }",
+            "Submitted.{ m-81b0e4 [ { 7d41e0 Observed Transported } { 88475f NotRequested Presented } ] }",
+            "SendRejected.BodyRefused.{ 7d41e0 HarnessCommand./compact }",
+            "SendRejected.BodyRefused.{ 7d41e0 ControlCharacter.14 }",
+            "SendRejected.UnknownRecipient.ffffff",
+            "SendRejected.RecipientRefused.{ 7d41e0 FlowStopped }",
+            "SendRejected.SenderUnknown",
+            "SendRejected.EmptyRecipients",
+            "SendRejected.FlowUnreachable",
+            "Withdrawn.m-7f3a2c",
+            "Acknowledged.m-7f3a2c",
+            "Receipts.{ m-7f3a2c [ { 7d41e0 NotRequested Read } ] }",
+            "ReceiptObserved.{ 7d41e0 NotRequested Refused.RecipientWorking }",
+            "ReceiptObserved.{ 7d41e0 Unobserved Uncertain }",
+            "ReceiptObserved.{ 7d41e0 NotRequested Withdrawn }",
+            "MessageRejected.NotParked",
+            "MessageRejected.NotRecipient",
+            "MessageRejected.NotUncertain",
+        ] {
+            let response = Potential::<Response>::from(text)
+                .actualize(&mut budget())
+                .unwrap_or_else(|error| panic!("{text}: {error:?}"));
+            assert_eq!(response.datomize(vec![]).protosize().textualize(), text);
+        }
     }
-    let canonical = "QueryDeliveryReceipts.{ event-42 [ accepted parked ] }";
-    let mut pending = Potential::<Query>::from(canonical);
-    let parsed = pending
-        .actualize(&mut Budget {
-            remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
-            depth: 0,
-            maximum_depth: 256,
-        })
-        .expect("parse canonical receipt query");
-    assert_eq!(parsed, query, "{canonical}");
-    let rendered = query.datomize(vec![]).protosize().textualize();
-    assert_eq!(rendered, canonical);
-    let mut pending = Potential::<Query>::from(rendered.clone());
-    let restored = pending
-        .actualize(&mut Budget {
-            remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
-            depth: 0,
-            maximum_depth: 256,
-        })
-        .expect("actualize canonical receipt query");
-    assert_eq!(restored, parsed, "{rendered}");
-}
 
-#[test]
-fn cluster_relay_metadata_round_trips_in_the_producer_frame() {
-    let relay = cluster_relay();
-    let outgoing = relay.signalize().expect("archive relay");
-    let restored = Signal::<ClusterMessage>::from(outgoing.bytes().to_vec())
-        .restore()
-        .expect("restore relay");
-    assert_eq!(restored, relay);
-}
-#[test]
-fn peer_cluster_message_round_trips_in_the_producer_frame() {
-    let peer = peer_message();
-    let outgoing = peer.signalize().expect("archive peer");
-    let restored = Signal::<ClusterMessage>::from(outgoing.bytes().to_vec())
-        .restore()
-        .expect("restore peer");
-    assert_eq!(restored, peer);
-}
-#[test]
-fn malformed_peer_bytes_are_rejected() {
-    assert!(Signal::<Query>::from(vec![0xff, 0, 1]).restore().is_err());
-}
-#[cfg(feature = "datom")]
-#[test]
-fn datom_round_trip_preserves_message_payload() {
-    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
-    use protos::{Protosizable, ReaderBudget, Textualizable};
-    let query = Query::Submit(submission());
-    let rendered = query.clone().datomize(vec![]).protosize().textualize();
-    let mut pending = Potential::<Query>::from(rendered);
-    let restored = pending
-        .actualize(&mut Budget {
-            remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
-            depth: 0,
-            maximum_depth: 256,
-        })
-        .expect("actualize");
-    assert_eq!(restored, query);
-}
-
-#[cfg(feature = "datom")]
-#[test]
-fn datom_round_trip_preserves_cluster_relay_strings() {
-    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
-    use protos::{Protosizable, ReaderBudget, Textualizable};
-    let relay = cluster_relay();
-    let rendered = relay.clone().datomize(vec![]).protosize().textualize();
-    assert!(
-        rendered.contains('«'),
-        "Datom renders string values through its guillemet form"
-    );
-    let mut pending = Potential::<ClusterMessage>::from(rendered);
-    let restored = pending
-        .actualize(&mut Budget {
-            remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
-            depth: 0,
-            maximum_depth: 256,
-        })
-        .expect("actualize");
-    assert_eq!(restored, relay);
-}
-
-#[cfg(feature = "datom")]
-#[test]
-fn datom_round_trip_preserves_multiline_peer_message() {
-    use datom_codec::{Actualizing, Budget, Datomizable, Potential};
-    use protos::{Protosizable, ReaderBudget, Textualizable};
-    let peer = peer_message();
-    let rendered = peer.clone().datomize(vec![]).protosize().textualize();
-    assert!(
-        rendered.contains('«'),
-        "Datom renders peer strings through its guillemet form"
-    );
-    assert!(
-        rendered.contains('\n'),
-        "Datom retains the multiline peer body"
-    );
-    let mut pending = Potential::<ClusterMessage>::from(rendered);
-    let restored = pending
-        .actualize(&mut Budget {
-            remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
-            depth: 0,
-            maximum_depth: 256,
-        })
-        .expect("actualize");
-    assert_eq!(restored, peer);
+    #[test]
+    fn a_request_datom_is_not_a_reply() {
+        assert!(
+            Potential::<Response>::from("Send.{ [ 7d41e0 ] Soft Text.hello }")
+                .actualize(&mut budget())
+                .is_err()
+        );
+    }
 }

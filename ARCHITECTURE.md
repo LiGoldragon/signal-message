@@ -1,63 +1,15 @@
-# ARCHITECTURE — signal-message
+# signal-message architecture
 
-`signal-message` owns the ordinary Interface vocabulary shared by two Message
-relations:
+Vocabulary only: no runtime, no sockets, no store.
 
-- a client or component submits an unstamped message to the Message receiver;
-- Message supplies the accepted-ingress origin and timestamp, then submits the
-  stamped message to Router.
+- `Priority.[ HardAbrupt MiddleAbrupt Soft ]` is the head the recipient sees:
+  Message hands Flow a `Message` value whose variant is the Priority.
+- `Grade` keeps every receipt grade separate: Submitted, Parked, Transported,
+  Presented, Uncertain, Read, Withdrawn, Refused (carrying Flow's own
+  `DeliveryRejection`). No grade is ever upgraded into another.
+- The sender is not a field of any request. It is stamped by the Nexus from
+  the peer.
 
-The Interface is self-contained. Its message, origin, agent-registry, thread,
-configuration, acceptance, and rejection Types are local relation vocabulary.
-Consumers project them into their own runtime state at the boundary.
-
-## Authority and projection
-
-`ethos/signal.ethos` is a role-free `Signal` document. The
-producer-owned bootstrap manifest records the authority identity, grammar
-seats, canonical order, and opaque declaration identities. `build.rs`
-assembles the text with that authority state and asks schema-rust 0.15 for the
-strict Rust Logos projection. Freshness is checked on every build.
-
-The generated artifact defines encoded Types only. Human spellings remain
-textual metadata used by Dotos. Rust consumers use the encoded coordinates,
-which makes identity independent from a current spelling, source position, or
-implementation substrate.
-
-## Current behavior slice
-
-Logos does not yet express the operational slice required by this contract.
-`src/schema/lib/behavior.rs` therefore seats structural archive and Dotos
-behavior by hand and defines the `Input` and `Output` roles explicitly. This is
-canonical bootstrap behavior, not a second Type vocabulary.
-
-The request role has nine ordered routes and the reply role has thirteen. Both
-are carried by the allocated Signal frame contract at wire revision 2. Every
-route is witnessed through frame bytes; representative Dotos witnesses ensure
-that human-facing role names remain legible while Rust Type names stay strict.
-
-## Boundaries
-
-This repository owns Type identity, role legality, Dotos structure, archive
-shape, and the Signal frame binding. It owns no actors, sockets, daemon state,
-routing policy, persistence policy, process supervision, or transport retry.
-
-The orchestrator mints agent identity. Message records the durable consumer
-view and binds live endpoints. A thread is a sender-chosen name with an
-optional repository/feature relation; its participants arise from traffic and
-explicit subscription. Message origin is derived from the accepted ingress,
-never trusted from an ordinary client payload.
-
-## Code map
-
-```text
-ethos/signal.ethos             authored Interface text
-src/bootstrap_manifest.rs         producer-owned authority seats
-build.rs                          verified assembly and strict projection
-src/generated/signal.rs       checked encoded Type projection
-src/schema/lib/behavior.rs        handwritten bootstrap behavior and roles
-tests/interface_contract.rs       role-free source and strictness witnesses
-tests/message_roles.rs            role seating and order witnesses
-tests/round_trip.rs               byte and Dotos witnesses
-tests/dependency_boundary.rs      build/runtime boundary and source fence
-```
+Retired in 6.0.0: the agent registry, inbox, threads, the cluster relay and
+peer envelope, stamped submission, and the flow-delivery park. Flow holds
+identity; `Content.Psyche` carries the psyche's words.

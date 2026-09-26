@@ -1,19 +1,19 @@
 # signal-message
 
-The ordinary Message ingress Interface. It carries the client-to-message and
-message-to-router relations in one typed family.
+The ordinary Message Nexus Signal contract. A message is just a message:
+`Send.{ [ recipients ] Priority Content }`. The sender is never in the
+payload; Message names it from the connection's peer through Flow.
 
-`ethos/signal.ethos` is the sole authored Interface projection. The build
-assembles it as an authority-approved transaction and checks the committed
-strict Rust projection in `src/generated/signal.rs`. Every Type is exposed
-only by its encoded identity. The current bootstrap stage keeps `Input` and
-`Output` as explicit handwritten roles over those Types; Dotos retains the
-human domain names at the textual boundary.
+Requests: `Send`, `Withdraw` (the sender, while parked), `Acknowledge` (a
+recipient; the only source of Read), `QueryReceipts`, `Observe` (receipts on
+open, then each grade change).
 
-The request role contains `Submit`, `SubmitStamped`, `QueryInbox`, agent
-registry operations, and thread operations. The reply role contains the
-corresponding accepted, rejected, listing, and unimplemented outcomes. Runtime
-provenance stamping, persistence, routing, sockets, and supervision belong to
-the consuming components.
+`Content`, `BodyRefusal`, `DeliveryRejection` and `InterruptWitness` are
+imported from `meta-signal-flow`: Flow is the only pane writer, and it renders
+and refuses exactly these values.
+
+`ethos/signal.ethos` is the authored source; `src/generated/signal.rs` is its
+committed projection, held fresh by `build.rs`. Every record kind has a
+concrete datom round trip in `tests/generated_contract.rs`.
 
 Run `nix flake check --print-build-logs` for the complete proof matrix.

@@ -1,5 +1,23 @@
 # UPGRADES
 
+## 5.0.0 → 6.0.0 — a message is just a message
+
+### What breaks
+
+Every request and reply is replaced. Queries: `Send.SendRequest`,
+`Withdraw.MessageId`, `Acknowledge.MessageId`, `QueryReceipts.MessageId`,
+`Observe.MessageId`. Replies: `Submitted`, `SendRejected`, `Withdrawn`,
+`Acknowledged`, `Receipts`, `ReceiptObserved`, `MessageRejected`.
+
+Retired with no replacement on this wire: `Submit`, `SubmitStamped`,
+`QueryInbox`, the thread queries, the agent registry, `FlowDeliver`,
+`FlowAnnounceIdle`, `Deliver` with `ClusterMessage`, `QueryDeliveryReceipts`,
+and `MessageDaemonConfiguration` (the meta contract owns configuration).
+
+The contract now depends on `signal-flow` 7.0.0 and `meta-signal-flow` 9.0.0
+and pins `datom-codec` 09e2a9d / `protos` 1febca7 to match them.
+
+
 ## 2.0.1 → 3.0.0 — shared frame, arity-split codec
 
 ### What breaks
