@@ -1,5 +1,39 @@
 # UPGRADES
 
+## 8.0.0 → 9.0.0 — ethos-zero 16.0.0, signal 7.0.0, protos and datom-codec 0.32.2
+
+### What breaks
+
+- The contract depends on `signal` 7.0.0 (66e7b153), the exchange layer,
+  where it depended on 5.0.0. The re-exported `Signal`, `Signalizable`,
+  `ByteViewable` and `Restorable` are signal 7.0.0's types. `Query`
+  implements `signal::Contracted` over `ETHOS`: the contract's wire identity
+  is the digest of `ethos/signal.ethos`, and a peer greets with
+  `Query::greeting()`.
+- It depends on `signal-flow` 8.0.0 (c297d987) and `meta-signal-flow`
+  12.0.0 (69f9c146). `MessageId`, `Content`, `BodyRefusal`,
+  `DeliveryRejection` and `InterruptWitness` are those releases' types; a
+  consumer still on meta-signal-flow 11.0.0 holds different Rust types.
+- The `datom` feature pins protos 0.32.2 (15b41da8) and datom-codec 0.32.2
+  (4dff16b4), where it pinned 0.31.0, and no longer enables `signal/datom`
+  (signal 7.0.0's `datom` feature pins datom-codec 0.31.0, a second codec;
+  nothing here holds a signal type).
+- protos 0.32's `textualize` prints vertically. The one-line datom a CLI
+  reads and writes is `Compactable::compact`.
+- The build dependency is ethos-zero 16.0.0 (0edfc0c3). The ethos source and
+  the generated Rust are unchanged; the rkyv archive of every value of this
+  contract is unchanged.
+
+### Deploying
+
+Nothing runs from this crate. In each consumer (meta-signal-message,
+message): repin `signal-message`, `signal` 66e7b153, `signal-flow`
+c297d987, `meta-signal-flow` 69f9c146, and protos and datom-codec 0.32.2
+wherever named; replace `.textualize()` with `.compact()` where one-line text
+is meant; rebuild. Message must be rebuilt and restarted together with the
+Flow it talks to (flow 0.19.0), because meta-signal-flow 12.0.0's frames are
+not readable by 11.0.0.
+
 ## 7.0.0 → 8.0.0 — a refusal names a Retired or Exited flow
 
 ### What breaks

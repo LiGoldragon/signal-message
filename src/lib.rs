@@ -20,3 +20,9 @@ pub use signal::{ByteViewable, Restorable, Signal, Signalizable};
 /// Flow renders it into the pane, and named here so a Message peer spells
 /// it in Message's own vocabulary.
 pub use meta_signal_flow::MessageId;
+
+/// The contract is identified on the wire by the digest of its authored
+/// Ethos source; the querying side greets with it.
+impl signal::Contracted for Query {
+    const CONTRACT_SOURCE: &'static str = ETHOS;
+}

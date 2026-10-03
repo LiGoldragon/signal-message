@@ -43,7 +43,7 @@ fn a_refused_receipt_carries_flows_own_rejection() {
 #[cfg(feature = "datom")]
 mod datom {
     use datom_codec::{Actualizing, Budget, Datomizable, Potential};
-    use protos::{Protosizable, ReaderBudget, Textualizable};
+    use protos::{Compactable, Protosizable, ReaderBudget};
     use signal_message::{Query, Response};
 
     fn budget() -> Budget {
@@ -69,7 +69,7 @@ mod datom {
             let query = Potential::<Query>::from(text)
                 .actualize(&mut budget())
                 .unwrap_or_else(|error| panic!("{text}: {error:?}"));
-            assert_eq!(query.datomize(vec![]).protosize().textualize(), text);
+            assert_eq!(query.datomize(vec![]).protosize().compact(), text);
         }
     }
 
@@ -99,7 +99,7 @@ mod datom {
             let response = Potential::<Response>::from(text)
                 .actualize(&mut budget())
                 .unwrap_or_else(|error| panic!("{text}: {error:?}"));
-            assert_eq!(response.datomize(vec![]).protosize().textualize(), text);
+            assert_eq!(response.datomize(vec![]).protosize().compact(), text);
         }
     }
 
