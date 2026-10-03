@@ -1,5 +1,26 @@
 # UPGRADES
 
+## 9.0.0 → 10.0.0 — signal 8.0.0, signal-flow 10.0.0, meta-signal-flow 14.0.0
+
+### What breaks
+
+- The contract depends on `signal` 8.0.0 (f35460de), `signal-flow` 10.0.0
+  (f95034de) and `meta-signal-flow` 14.0.0 (54eb5618), where it depended on
+  signal 7.0.0, signal-flow 8.0.0 and meta-signal-flow 12.0.0. The imported
+  Flow types and the `signal::Contracted` that `Query` implements are now
+  those releases'; a crate holding the older ones alongside sees two sets.
+- The `datom` feature also enables `signal/datom`: signal 8.0.0 binds the
+  same datom-codec and protos 0.32.2, so the graph holds one codec.
+- The build reads the ethos with ethos-zero 16.0.0 at c2653dd8. The
+  generated module is byte-identical (the build script asserts it), so
+  `ETHOS`, the contract digest and every archive are unchanged from 9.0.0.
+
+### Deploy
+
+In meta-signal-message and message: repin signal-message with signal 8.0.0,
+signal-flow 10.0.0 and meta-signal-flow 14.0.0 in one change. The wire is
+unchanged; a 9.0.0 peer still greets this one.
+
 ## 8.0.0 → 9.0.0 — ethos-zero 16.0.0, signal 7.0.0, protos and datom-codec 0.32.2
 
 ### What breaks
