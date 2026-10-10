@@ -20,6 +20,8 @@ pub enum SendRefusal {
     Locked,
     Lapsed,
     NotMessage,
+    NoLayer,
+    Store(String),
     FlowUnreachable,
     AlreadyConfigured,
 }
