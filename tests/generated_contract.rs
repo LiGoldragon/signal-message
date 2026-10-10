@@ -3,7 +3,9 @@
 //! the rkyv archive.
 
 use meta_signal_flow::{Content, DeliveryRejection, InterruptWitness};
-use signal_message::{Grade, Priority, Query, Receipt, Response, SendRequest, Submission};
+use signal_message::{
+    Configuration, Grade, Priority, Query, Receipt, Response, SendRequest, Submission,
+};
 
 fn archived_query(query: &Query) -> Query {
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(query).expect("archives");
@@ -13,6 +15,16 @@ fn archived_query(query: &Query) -> Query {
 fn archived_response(response: &Response) -> Response {
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(response).expect("archives");
     rkyv::from_bytes::<Response, rkyv::rancor::Error>(&bytes).expect("restores")
+}
+
+#[test]
+fn configuration_survives_the_archive() {
+    let query = Query::Configure(Configuration {
+        ordinary: "/run/user/1001/message/message.sock".into(),
+        meta: "/run/user/1001/message/message-owner.sock".into(),
+        flow: "/run/user/1001/flow/flow.sock".into(),
+    });
+    assert_eq!(archived_query(&query), query);
 }
 
 #[test]
@@ -58,6 +70,7 @@ mod datom {
     #[test]
     fn every_request_kind_has_a_concrete_datom() {
         for text in [
+            "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
             "Send.{ [ 7d41e0 ] Soft Text.«Stage 1 is deployed; run the tier tests.» }",
             "Send.{ [ 7d41e0 88475f ] HardAbrupt Psyche.{ «on build hosts» «Prometheus should be doing the builds.» } }",
             "Send.{ [ 7d41e0 ] MiddleAbrupt Text./compact }",
@@ -76,6 +89,8 @@ mod datom {
     #[test]
     fn every_reply_kind_has_a_concrete_datom() {
         for text in [
+            "Configured",
+            "Refused.AlreadyConfigured",
             "Submitted.{ m-7f3a2c [ { 7d41e0 NotRequested Parked } ] }",
             "Submitted.{ m-81b0e4 [ { 7d41e0 Observed Transported } { 88475f NotRequested Presented } ] }",
             "SendRejected.BodyRefused.{ 7d41e0 HarnessCommand./compact }",

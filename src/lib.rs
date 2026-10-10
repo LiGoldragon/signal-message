@@ -6,10 +6,18 @@
 //! renders and refuses them: the id is typed at the head of the letter, so
 //! a recipient can Acknowledge from what it reads in its own pane.
 
+extern crate self as message_library;
+
 pub mod generated;
+pub use generated::message_library::*;
 pub use generated::signal::*;
 
-pub const ETHOS: &str = include_str!("../ethos/signal.ethos");
+pub const LIBRARY_ETHOS: &str = include_str!("../ethos/message_library.ethos");
+pub const ETHOS: &str = concat!(
+    include_str!("../ethos/message_library.ethos"),
+    "\n",
+    include_str!("../ethos/signal.ethos"),
+);
 pub const WIRE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The portable rkyv Signal frame is one shared type across the estate.

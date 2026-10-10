@@ -1,0 +1,6 @@
+; Configuration shared by ordinary and Meta Message.
+Library
+[]
+[ Configuration.{ Ordinary.String Meta.String Flow.String } ]
+[]
+[]

@@ -27,10 +27,11 @@
 ; ReceiptObserved for every later grade change.
 
 Signal
-[ signal_flow:[ FlowId ] meta_signal_flow:[ MessageId Content BodyRefusal DeliveryRejection InterruptWitness ] ]
-[ Send.SendRequest Withdraw.MessageId Acknowledge.MessageId QueryReceipts.MessageId Observe.MessageId ]
-[ Submitted.Submission SendRejected.SendRejection Withdrawn.MessageId Acknowledged.MessageId Receipts.Submission ReceiptObserved.Receipt MessageRejected.MessageRejection ]
+[ signal_flow:[ FlowId ] meta_signal_flow:[ MessageId Content BodyRefusal DeliveryRejection InterruptWitness ] message_library:[ Configuration ] ]
+[ Configure.Configuration Send.SendRequest Withdraw.MessageId Acknowledge.MessageId QueryReceipts.MessageId Observe.MessageId ]
+[ Configured Refused.ConfigureRefusal Submitted.Submission SendRejected.SendRejection Withdrawn.MessageId Acknowledged.MessageId Receipts.Submission ReceiptObserved.Receipt MessageRejected.MessageRejection ]
 [ Priority.[ HardAbrupt MiddleAbrupt Soft ]
+  ConfigureRefusal.[ AlreadyConfigured ]
   SendRequest.{ Vector<FlowId> Priority Content }
   Grade.[ Submitted Parked Transported Presented Uncertain Read Withdrawn Refused.DeliveryRejection ]
   Receipt.{ FlowId InterruptWitness Grade }
