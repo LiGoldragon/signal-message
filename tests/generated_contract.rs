@@ -1,8 +1,8 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_message::{
-    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response,
-    Send_Data, SendRefusal,
+    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response, Send_Data,
+    SendRefusal,
 };
 
 fn archived_query(query: &Query) -> Query {
