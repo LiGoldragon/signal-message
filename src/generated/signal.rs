@@ -10,6 +10,12 @@ pub enum Priority {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum ConfigureRefusal {
+    AlreadyConfigured,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct SendRequest {
     pub flow_id_vector: std::vec::Vec<signal_flow::FlowId>,
     pub priority: Priority,
@@ -85,6 +91,7 @@ pub enum MessageRejection {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
+    Configure(message_library::Configuration),
     Send(SendRequest),
     Withdraw(meta_signal_flow::MessageId),
     Acknowledge(meta_signal_flow::MessageId),
@@ -95,6 +102,8 @@ pub enum Query {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Response {
+    Configured,
+    Refused(ConfigureRefusal),
     Submitted(Submission),
     SendRejected(SendRejection),
     Withdrawn(meta_signal_flow::MessageId),
