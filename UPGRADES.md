@@ -1,5 +1,18 @@
 # UPGRADES
 
+## 12.0.0 → 13.0.0 — complete typed Flow refusals
+
+### What breaks
+
+`SendRefusal` adds `NoLayer` and `Store.String`. A missing recipient
+layer remains distinct, and store failures carry Flow's diagnostic.
+Older peers cannot greet this contract.
+
+### Deploy
+
+Repin `meta-signal-message` and `message` to this release together.
+Their operation failure mapping must preserve these payloads.
+
 ## 11.0.0 → 12.0.0 — typed Flow recipient and request
 
 ### What breaks

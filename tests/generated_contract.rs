@@ -1,8 +1,8 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_message::{
-    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response, Send_Data,
-    SendRefusal,
+    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response,
+    Send_Data, SendRefusal,
 };
 
 fn archived_query(query: &Query) -> Query {
@@ -57,6 +57,8 @@ fn flow_and_message_refusals_survive_the_archive() {
         Response::Configured,
         Response::Refused(SendRefusal::AlreadyConfigured),
         Response::Refused(SendRefusal::FlowUnreachable),
+        Response::Refused(SendRefusal::NoLayer),
+        Response::Refused(SendRefusal::Store("database unavailable".into())),
     ] {
         assert_eq!(archived_response(&response), response);
     }
@@ -111,6 +113,8 @@ mod datom {
             "Refused.Locked",
             "Refused.Lapsed",
             "Refused.NotMessage",
+            "Refused.NoLayer",
+            "Refused.Store.«database unavailable»",
         ] {
             let response = Potential::<Response>::from(text)
                 .actualize(&mut budget())
