@@ -1,10 +1,4 @@
-//! Ordinary Message Nexus Signal contract.
-//!
-//! A message is just a message: recipients, a Priority and a Content. The
-//! MessageId, the Content, the refusals and the interrupt witness are
-//! declared in `meta-signal-flow`, because Flow is the pane writer that
-//! renders and refuses them: the id is typed at the head of the letter, so
-//! a recipient can Acknowledge from what it reads in its own pane.
+//! Typed Message requests addressed through Flow.
 
 extern crate self as message_library;
 
@@ -24,10 +18,9 @@ pub const WIRE_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// A second copy here would be a different Rust type, forking the wire.
 pub use signal::{ByteViewable, Restorable, Signal, Signalizable};
 
-/// The id a message is known by on both contracts. Declared once, where
-/// Flow renders it into the pane, and named here so a Message peer spells
-/// it in Message's own vocabulary.
-pub use meta_signal_flow::MessageId;
+/// Flow's request vocabulary is part of Message's public wire API.
+pub use flow_ethos::Aspect;
+pub use signal_flow::{Address, Layer, Lock, Process, Recipient, Request};
 
 /// The contract is identified on the wire by the digest of its authored
 /// Ethos source; the querying side greets with it.

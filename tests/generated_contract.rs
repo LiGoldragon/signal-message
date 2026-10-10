@@ -1,10 +1,8 @@
-//! The falsifiable specification of every record kind: each one lands as a
-//! concrete datom that round-trips, and every request and reply survives
-//! the rkyv archive.
+//! Requests and replies survive their archive and have concrete datoms.
 
-use meta_signal_flow::{Content, DeliveryRejection, InterruptWitness};
 use signal_message::{
-    Configuration, Grade, Priority, Query, Receipt, Response, SendRequest, Submission,
+    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Send_Data,
+    Response, SendRefusal,
 };
 
 fn archived_query(query: &Query) -> Query {
@@ -17,39 +15,51 @@ fn archived_response(response: &Response) -> Response {
     rkyv::from_bytes::<Response, rkyv::rancor::Error>(&bytes).expect("restores")
 }
 
-#[test]
-fn configuration_survives_the_archive() {
-    let query = Query::Configure(Configuration {
+fn configuration() -> Configuration {
+    Configuration {
         ordinary: "/run/user/1001/message/message.sock".into(),
         meta: "/run/user/1001/message/message-owner.sock".into(),
         flow: "/run/user/1001/flow/flow.sock".into(),
-    });
+    }
+}
+
+#[test]
+fn configuration_keeps_its_archive_shape() {
+    let query = Query::Configure(configuration());
     assert_eq!(archived_query(&query), query);
 }
 
 #[test]
-fn a_send_request_survives_the_archive() {
-    let query = Query::Send(SendRequest {
-        flow_id_vector: vec!["7d41e0".into(), "88475f".into()],
-        priority: Priority::Soft,
-        content: Content::Text("Stage 1 is deployed; run the tier tests.".into()),
+fn typed_address_and_up_requests_survive_the_archive() {
+    let address = Address {
+        aspect: Aspect::Mind,
+        topic: "flow".into(),
+        layer: Layer::Secondary,
+    };
+    let addressed = Query::Send(Send_Data {
+        recipient: Recipient::Address(address),
+        request: Request::Question("What is current?".into()),
     });
-    assert_eq!(archived_query(&query), query);
+    let upward = Query::Send(Send_Data {
+        recipient: Recipient::Up,
+        request: Request::Order("Refresh the current flow.".into()),
+    });
+    assert_eq!(archived_query(&addressed), addressed);
+    assert_eq!(archived_query(&upward), upward);
 }
 
 #[test]
-fn a_refused_receipt_carries_flows_own_rejection() {
-    let response = Response::ReceiptObserved(Receipt {
-        flow_id: "7d41e0".into(),
-        interrupt_witness: InterruptWitness::NotRequested,
-        grade: Grade::Refused(DeliveryRejection::RecipientBlocked),
-    });
-    assert_eq!(archived_response(&response), response);
-    let submitted = Response::Submitted(Submission {
-        message_id: "m-7f3a2c".into(),
-        receipt_vector: vec![],
-    });
-    assert_ne!(archived_response(&submitted), response);
+fn flow_and_message_refusals_survive_the_archive() {
+    for response in [
+        Response::Delivered,
+        Response::Woken,
+        Response::Queued,
+        Response::Configured,
+        Response::Refused(SendRefusal::AlreadyConfigured),
+        Response::Refused(SendRefusal::FlowUnreachable),
+    ] {
+        assert_eq!(archived_response(&response), response);
+    }
 }
 
 #[cfg(feature = "datom")]
@@ -68,16 +78,11 @@ mod datom {
     }
 
     #[test]
-    fn every_request_kind_has_a_concrete_datom() {
+    fn requests_use_the_typed_recipient_and_request() {
         for text in [
             "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
-            "Send.{ [ 7d41e0 ] Soft Text.«Stage 1 is deployed; run the tier tests.» }",
-            "Send.{ [ 7d41e0 88475f ] HardAbrupt Psyche.{ «on build hosts» «Prometheus should be doing the builds.» } }",
-            "Send.{ [ 7d41e0 ] MiddleAbrupt Text./compact }",
-            "Withdraw.m-7f3a2c",
-            "Acknowledge.m-7f3a2c",
-            "QueryReceipts.m-7f3a2c",
-            "Observe.m-7f3a2c",
+            "Send.{ { Mind flow Secondary } Question.«What is current?» }",
+            "Send.{ Up Order.«Refresh the current flow.» }",
         ] {
             let query = Potential::<Query>::from(text)
                 .actualize(&mut budget())
@@ -87,29 +92,25 @@ mod datom {
     }
 
     #[test]
-    fn every_reply_kind_has_a_concrete_datom() {
+    fn replies_keep_typed_refusal_paths() {
         for text in [
+            "Delivered",
+            "Woken",
+            "Queued",
             "Configured",
             "Refused.AlreadyConfigured",
-            "Submitted.{ m-7f3a2c [ { 7d41e0 NotRequested Parked } ] }",
-            "Submitted.{ m-81b0e4 [ { 7d41e0 Observed Transported } { 88475f NotRequested Presented } ] }",
-            "SendRejected.BodyRefused.{ 7d41e0 HarnessCommand./compact }",
-            "SendRejected.BodyRefused.{ 7d41e0 ControlCharacter.14 }",
-            "SendRejected.UnknownRecipient.ffffff",
-            "SendRejected.RecipientRefused.{ 7d41e0 FlowStopped }",
-            "SendRejected.RecipientRefused.{ 7d41e0 FlowExited }",
-            "SendRejected.SenderUnknown",
-            "SendRejected.EmptyRecipients",
-            "SendRejected.FlowUnreachable",
-            "Withdrawn.m-7f3a2c",
-            "Acknowledged.m-7f3a2c",
-            "Receipts.{ m-7f3a2c [ { 7d41e0 NotRequested Read } ] }",
-            "ReceiptObserved.{ 7d41e0 NotRequested Refused.RecipientWorking }",
-            "ReceiptObserved.{ 7d41e0 Unobserved Uncertain }",
-            "ReceiptObserved.{ 7d41e0 NotRequested Withdrawn }",
-            "MessageRejected.NotParked",
-            "MessageRejected.NotRecipient",
-            "MessageRejected.NotUncertain",
+            "Refused.FlowUnreachable",
+            "Refused.Unidentified.{ 42 100 }",
+            "Refused.Unknown.Address.{ Mind flow Secondary }",
+            "Refused.Unknown.Lock.{ { Mind flow Primary } { Mind flow Secondary } 12345 }",
+            "Refused.Ended.Address.{ Mind flow Primary }",
+            "Refused.Asleep",
+            "Refused.NoneAbove",
+            "Refused.OffRoute",
+            "Refused.Held.Lock.{ { Mind flow Primary } { Mind flow Secondary } 12345 }",
+            "Refused.Locked",
+            "Refused.Lapsed",
+            "Refused.NotMessage",
         ] {
             let response = Potential::<Response>::from(text)
                 .actualize(&mut budget())
@@ -119,9 +120,9 @@ mod datom {
     }
 
     #[test]
-    fn a_request_datom_is_not_a_reply() {
+    fn a_send_request_is_not_a_reply() {
         assert!(
-            Potential::<Response>::from("Send.{ [ 7d41e0 ] Soft Text.hello }")
+            Potential::<Response>::from("Send.{ Up Order.«refresh» }")
                 .actualize(&mut budget())
                 .is_err()
         );

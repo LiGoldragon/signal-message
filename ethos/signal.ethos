@@ -1,40 +1,29 @@
-; Message ordinary Signal.
-;
-; A message is just a message: a Priority, a Content, and the flows it is
-; for. The sender is never in the payload; Message names it from the peer
-; (Flow's ResolvePeer). Message owns the record, the ledger and the
-; receipts; Flow is the only pane writer, and Message reaches a pane only
-; through Flow's Deliver.
-;
-; Send vets every recipient first (the first refusal fails the whole
-; Send), records the message, then delivers to each recipient and answers
-; each one's Receipt. A recipient that is working (Soft) or whose composer
-; holds text is Parked, and the message lands when Flow shows it at rest.
-;
-; Grades stay separate. Submitted: Message accepted and recorded it.
-; Parked: waiting for the recipient to rest. Transported: Herdr accepted
-; the text for the exact binding. Presented: the recipient was seen
-; reacting on the exact pane. Uncertain: text may have reached the pane
-; and is never retried by itself (meta Redeliver). Read: the recipient's
-; own Acknowledge, the only source of Read. Withdrawn: the sender took a
-; parked message back. Refused: Flow refused it.
-;
-; Withdraw is the sender's, only while parked. Acknowledge is a
-; recipient's: the MessageId it names is the one Flow typed at the head of
-; the letter, so a recipient reading its own pane can acknowledge without
-; being told the id another way. The id is declared once, in
-; meta-signal-flow, because Flow renders it into the pane. Observe answers the Receipts on open, then a
-; ReceiptObserved for every later grade change.
+; Message carries a typed request to Flow for one metaflow.
+; Flow resolves Up relative to the sending metaflow, holds the queue,
+; and applies its wake rule. Message records no messages or ids.
+; Send has no caller field; Message identifies its socket peer.
+; Configure sets the ordinary, Meta and Flow socket paths. An ordinary
+; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ FlowId ] meta_signal_flow:[ MessageId Content BodyRefusal DeliveryRejection InterruptWitness ] message_library:[ Configuration ] ]
-[ Configure.Configuration Send.SendRequest Withdraw.MessageId Acknowledge.MessageId QueryReceipts.MessageId Observe.MessageId ]
-[ Configured Refused.ConfigureRefusal Submitted.Submission SendRejected.SendRejection Withdrawn.MessageId Acknowledged.MessageId Receipts.Submission ReceiptObserved.Receipt MessageRejected.MessageRejection ]
-[ Priority.[ HardAbrupt MiddleAbrupt Soft ]
-  ConfigureRefusal.[ AlreadyConfigured ]
-  SendRequest.{ Vector<FlowId> Priority Content }
-  Grade.[ Submitted Parked Transported Presented Uncertain Read Withdrawn Refused.DeliveryRejection ]
-  Receipt.{ FlowId InterruptWitness Grade }
-  Submission.{ MessageId Vector<Receipt> }
-  SendRejection.[ SenderUnknown EmptyRecipients UnknownRecipient.FlowId BodyRefused.{ FlowId BodyRefusal } RecipientRefused.{ FlowId DeliveryRejection } FlowUnreachable StoreRefused ]
-  MessageRejection.[ UnknownMessage NotSender NotRecipient NotParked NotUncertain FlowUnreachable StoreRefused ] ]
+[ signal_flow:[ Address Recipient Request Process Lock ]
+  message_library:Configuration ]
+[ Send.{ Recipient Request }
+  Configure.Configuration ]
+[ Delivered
+  Woken
+  Queued
+  Configured
+  Refused.SendRefusal ]
+[ SendRefusal.[ Unidentified.Process
+  Unknown.[ Address Lock ]
+  Ended.Address
+  Asleep
+  NoneAbove
+  OffRoute
+  Held.Lock
+  Locked
+  Lapsed
+  NotMessage
+  FlowUnreachable
+  AlreadyConfigured ] ]

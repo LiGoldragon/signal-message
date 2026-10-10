@@ -1,5 +1,25 @@
 # UPGRADES
 
+## 11.0.0 → 12.0.0 — typed Flow recipient and request
+
+### What breaks
+
+`Send` is now `{ Recipient Request }` from `signal-flow` 12.0.0.
+The flow-id vector, priority, content, message ledger, receipt and
+withdrawal vocabularies are removed from this contract. Refusals carry
+the typed Flow address, lock or process where applicable. `Woken` has
+no flow-id payload.
+
+This release pins `signal-flow` a991c149, its `flow-ethos` source
+a3173348, and `signal` e0e3c055 so the request types and frame belong
+to one dependency graph. Old peers cannot greet the new contract.
+
+### Deploy
+
+Update `meta-signal-message` and `message` together. Remove consumers of
+the retired receipt and redelivery shapes; no compatibility adapter is
+provided.
+
 ## 9.0.0 → 10.0.0 — signal 8.0.0, signal-flow 10.0.0, meta-signal-flow 14.0.0
 
 ### What breaks
