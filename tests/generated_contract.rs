@@ -1,8 +1,8 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_message::{
-    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Send_Data,
-    Response, SendRefusal,
+    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response, Send_Data,
+    SendRefusal,
 };
 
 fn archived_query(query: &Query) -> Query {
@@ -81,7 +81,7 @@ mod datom {
     fn requests_use_the_typed_recipient_and_request() {
         for text in [
             "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
-            "Send.{ { Mind flow Secondary } Question.«What is current?» }",
+            "Send.{ Address.{ Mind flow Secondary } Question.«What is current?» }",
             "Send.{ Up Order.«Refresh the current flow.» }",
         ] {
             let query = Potential::<Query>::from(text)
