@@ -24,6 +24,8 @@ pub enum SendRefusal {
     Store(String),
     FlowUnreachable,
     AlreadyConfigured,
+    NotConfigured,
+    NotSendServer(signal_flow::Process),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -35,9 +37,18 @@ pub struct Send_Data {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct SendThread_Data {
+    pub recipient: signal_flow::Recipient,
+    pub request: signal_flow::Request,
+    pub native_session_id: signal_flow::NativeSessionId,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Query {
     Send(Send_Data),
     Configure(message_library::Configuration),
+    SendThread(SendThread_Data),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]

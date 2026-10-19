@@ -1,15 +1,19 @@
 ; Message carries a typed request to Flow for one metaflow.
 ; Flow resolves Up relative to the sending metaflow, holds the queue,
 ; and applies its wake rule. Message records no messages or ids.
-; Send has no caller field; Message identifies its socket peer.
+; Send identifies its socket peer through process ancestry.
+; SendThread additionally carries the harness-stamped native thread id.
+; Neither request carries a PID or sender address. Message reads its peer
+; from the kernel and Flow verifies the configured MCP/app-server pair.
 ; Configure sets the ordinary, Meta and Flow socket paths. An ordinary
 ; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ Address Recipient Request Process Lock ]
+[ signal_flow:[ Address Recipient Request Process Lock NativeSessionId ]
   message_library:Configuration ]
 [ Send.{ Recipient Request }
-  Configure.Configuration ]
+  Configure.Configuration
+  SendThread.{ Recipient Request NativeSessionId } ]
 [ Delivered
   Woken
   Queued
@@ -28,4 +32,6 @@ Signal
   NoLayer
   Store.String
   FlowUnreachable
-  AlreadyConfigured ] ]
+  AlreadyConfigured
+  NotConfigured
+  NotSendServer.Process ] ]

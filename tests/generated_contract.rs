@@ -85,6 +85,7 @@ mod datom {
             "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
             "Send.{ Address.{ Mind flow Secondary } Question.«What is current?» }",
             "Send.{ Up Order.«Refresh the current flow.» }",
+            "SendThread.{ Up Question.«whole body» recorded-thread }",
         ] {
             let query = Potential::<Query>::from(text)
                 .actualize(&mut budget())
@@ -113,6 +114,8 @@ mod datom {
             "Refused.Locked",
             "Refused.Lapsed",
             "Refused.NotMessage",
+            "Refused.NotConfigured",
+            "Refused.NotSendServer.{ 42 100 }",
             "Refused.NoLayer",
             "Refused.Store.«database unavailable»",
         ] {
@@ -130,5 +133,24 @@ mod datom {
                 .actualize(&mut budget())
                 .is_err()
         );
+    }
+}
+
+#[test]
+fn thread_send_and_identification_refusals_survive_archive() {
+    let query = Query::SendThread(signal_message::SendThread_Data {
+        recipient: Recipient::Up,
+        request: Request::Question("whole body".into()),
+        native_session_id: "recorded-thread".into(),
+    });
+    assert_eq!(archived_query(&query), query);
+    for response in [
+        Response::Refused(SendRefusal::NotConfigured),
+        Response::Refused(SendRefusal::NotSendServer(signal_message::Process {
+            pid: 42,
+            started: 100,
+        })),
+    ] {
+        assert_eq!(archived_response(&response), response);
     }
 }
