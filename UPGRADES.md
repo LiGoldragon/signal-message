@@ -1,5 +1,17 @@
 # UPGRADES
 
+## 15.0.0 → 16.0.0 — signal-flow 25.0.0
+
+### What breaks
+
+Pins signal-flow 25.0.0 (c67e561) and flow-ethos (flow dc2cba6), whose
+`SentBy` appends `Flow`. The wire of this contract is unchanged; a crate
+that links signal-flow beside it repins both.
+
+### Deploy
+
+Repin `meta-signal-message` and `message` to this release together.
+
 ## 12.0.0 → 13.0.0 — complete typed Flow refusals
 
 ### What breaks
