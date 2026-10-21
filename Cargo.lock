@@ -152,6 +152,15 @@ name = "flow-ethos"
 version = "0.37.2"
 source = "git+https://github.com/LiGoldragon/flow?rev=dc2cba66283933b3bad2f22babe66ec2022e293d#dc2cba66283933b3bad2f22babe66ec2022e293d"
 dependencies = [
+ "ethos-zero 17.0.0",
+ "rkyv",
+]
+
+[[package]]
+name = "flow-ethos"
+version = "0.38.1"
+source = "git+https://github.com/LiGoldragon/flow?rev=be9aaa73a75d186b0b674c6f9f1c743ca9d715a1#be9aaa73a75d186b0b674c6f9f1c743ca9d715a1"
+dependencies = [
  "datom-codec",
  "ethos-zero 17.0.0",
  "protos",
@@ -378,12 +387,12 @@ dependencies = [
 
 [[package]]
 name = "signal-flow"
-version = "27.0.0"
-source = "git+https://github.com/LiGoldragon/signal-flow?rev=cc524c807047d39967d213917308d928c2685129#cc524c807047d39967d213917308d928c2685129"
+version = "28.0.0"
+source = "git+https://github.com/LiGoldragon/signal-flow?rev=994ce154fbd7769d73ce13a6941d3cd46b123eee#994ce154fbd7769d73ce13a6941d3cd46b123eee"
 dependencies = [
  "datom-codec",
  "ethos-zero 17.0.0",
- "flow-ethos",
+ "flow-ethos 0.38.1",
  "protos",
  "rkyv",
  "signal",
@@ -391,11 +400,11 @@ dependencies = [
 
 [[package]]
 name = "signal-message"
-version = "17.0.0"
+version = "18.0.0"
 dependencies = [
  "datom-codec",
  "ethos-zero 17.0.0",
- "flow-ethos",
+ "flow-ethos 0.37.2",
  "protos",
  "rkyv",
  "signal",

@@ -164,3 +164,17 @@ compile error behind it.
 Pin `signal` as `https://github.com/LiGoldragon/signal` with **no `.git`
 suffix**: cargo source identity is the pin string, not the commit, so
 `signal.git` and `signal` are two packages for one commit.
+
+## 17.0.0 → 18.0.0 — stream durable delivery status
+
+### What breaks
+
+`Send` and `SendThread` now carry Flow's shared `SendRequest`. Message
+returns `SendAccepted` then a sender-filtered status snapshot and updates.
+Clients resume with Flow's durable `DeliveryCursor`.
+
+### Deploy
+
+Repin `meta-signal-message` and Message to this contract. Message must consume
+Flow's authenticated sender stream and forward updates on the originating
+connection.

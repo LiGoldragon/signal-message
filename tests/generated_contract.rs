@@ -1,9 +1,10 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
-use signal_message::{
-    Address, Aspect, Configuration, Layer, Query, Recipient, Request, Response, Send_Data,
-    SendRefusal,
+use signal_flow::{
+    Address, Aspect, Delivery, DeliveryState, Layer, Message, Recipient, Request, SendAcceptance,
+    SendObservation,
 };
+use signal_message::{Configuration, Query, Response, SendRefusal};
 
 fn archived_query(query: &Query) -> Query {
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(query).expect("archives");
@@ -36,24 +37,37 @@ fn typed_address_and_up_requests_survive_the_archive() {
         topic: "flow".into(),
         layer: Layer::Secondary,
     };
-    let addressed = Query::Send(Send_Data {
-        recipient: Recipient::Address(address),
-        request: Request::Question("What is current?".into()),
-    });
-    let upward = Query::Send(Send_Data {
-        recipient: Recipient::Up,
-        request: Request::Order("Refresh the current flow.".into()),
-    });
+    let request = |recipient| signal_flow::SendRequest {
+        recipient,
+        delivery: Delivery::Wake,
+        message: Message::MiddleAbrupt(Request::Question(
+            "What is current?".into(),
+        )),
+    };
+    let addressed = Query::Send(request(Recipient::Address(address)));
+    let upward = Query::Send(request(Recipient::Up));
     assert_eq!(archived_query(&addressed), addressed);
     assert_eq!(archived_query(&upward), upward);
 }
 
 #[test]
+fn accepted_and_observed_delivery_states_survive_archive() {
+    let accepted = Response::SendAccepted(SendAcceptance {
+        logical_delivery_id: "logical-1".into(),
+        delivery_cursor: 1,
+        delivery_state: DeliveryState::Queued,
+    });
+    assert_eq!(archived_response(&accepted), accepted);
+    let observed = Response::SendsObserved(SendObservation {
+        delivery_cursor: 1,
+        delivery_snapshot_vector: vec![],
+    });
+    assert_eq!(archived_response(&observed), observed);
+}
+
+#[test]
 fn flow_and_message_refusals_survive_the_archive() {
     for response in [
-        Response::Delivered,
-        Response::Woken,
-        Response::Queued,
         Response::Configured,
         Response::Refused(SendRefusal::AlreadyConfigured),
         Response::Refused(SendRefusal::FlowUnreachable),
@@ -87,9 +101,11 @@ mod datom {
     fn requests_use_the_typed_recipient_and_request() {
         for text in [
             "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
-            "Send.{ Address.{ Mind flow Secondary } Question.«What is current?» }",
-            "Send.{ Up Order.«Refresh the current flow.» }",
-            "SendThread.{ Up Question.«whole body» recorded-thread }",
+            "Send.{ Address.{ Mind flow Secondary } Wake MiddleAbrupt.Question.«What is current?» }",
+            "Send.{ Up Wake MiddleAbrupt.Order.«Refresh the current flow.» }",
+            "SendThread.{ { Up Wake MiddleAbrupt.Question.«whole body» } recorded-thread }",
+            "ObserveSends.1",
+            "ObserveThread.{ 1 recorded-thread }",
         ] {
             let query = Potential::<Query>::from(text)
                 .actualize(&mut budget())
@@ -101,9 +117,6 @@ mod datom {
     #[test]
     fn replies_keep_typed_refusal_paths() {
         for text in [
-            "Delivered",
-            "Woken",
-            "Queued",
             "Configured",
             "Refused.AlreadyConfigured",
             "Refused.FlowUnreachable",
@@ -134,7 +147,7 @@ mod datom {
     #[test]
     fn a_send_request_is_not_a_reply() {
         assert!(
-            Potential::<Response>::from("Send.{ Up Order.«refresh» }")
+            Potential::<Response>::from("Send.{ Up Wake MiddleAbrupt.Order.«refresh» }")
                 .actualize(&mut budget())
                 .is_err()
         );
@@ -144,8 +157,13 @@ mod datom {
 #[test]
 fn thread_send_and_identification_refusals_survive_archive() {
     let query = Query::SendThread(signal_message::SendThread_Data {
-        recipient: Recipient::Up,
-        request: Request::Question("whole body".into()),
+        send_request: signal_flow::SendRequest {
+            recipient: Recipient::Up,
+            delivery: Delivery::Wake,
+            message: Message::MiddleAbrupt(Request::Question(
+                "whole body".into(),
+            )),
+        },
         native_session_id: "recorded-thread".into(),
     });
     assert_eq!(archived_query(&query), query);

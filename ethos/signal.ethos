@@ -1,23 +1,21 @@
-; Message carries a typed request to Flow for one metaflow.
-; Flow resolves Up relative to the sending metaflow, holds the queue,
-; and applies its wake rule. Message records no messages or ids.
-; Send identifies its socket peer through process ancestry.
-; SendThread additionally carries the harness-stamped native thread id.
-; Neither request carries a PID or sender address. Message reads its peer
-; from the kernel and Flow verifies the configured MCP/app-server pair.
+; Message forwards Flow's durable logical delivery and exposes its
+; sender-filtered status stream. The socket peer is the authenticated sender.
 ; Configure sets the ordinary, Meta and Flow socket paths. An ordinary
 ; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ Address Recipient Request Process Lock NativeSessionId
-  SendPayloadSize ActualBytes MaximumBytes ]
+[ signal_flow:[ Address Process Lock SendPayloadSize SendRequest SendAcceptance DeliverySnapshot
+                SendObservation DeliveryCursor NativeSessionId ]
   message_library:Configuration ]
-[ Send.{ Recipient Request }
-  Configure.Configuration
-  SendThread.{ Recipient Request NativeSessionId } ]
-[ Delivered
-  Woken
-  Queued
+[ Send.SendRequest
+  SendThread.{ SendRequest NativeSessionId }
+  ObserveSends.Option<DeliveryCursor>
+  ObserveThread.{ Option<DeliveryCursor> NativeSessionId }
+  Configure.Configuration ]
+[ SendAccepted.SendAcceptance
+  SendsObserved.SendObservation
+  SendChanged.DeliverySnapshot
+  ObservationInterrupted.{ Option<DeliveryCursor> String }
   Configured
   Refused.SendRefusal ]
 [ SendRefusal.[ Unidentified.Process
