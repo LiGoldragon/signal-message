@@ -40,9 +40,7 @@ fn typed_address_and_up_requests_survive_the_archive() {
     let request = |recipient| signal_flow::SendRequest {
         recipient,
         delivery: Delivery::Wake,
-        message: Message::MiddleAbrupt(Request::Question(
-            "What is current?".into(),
-        )),
+        message: Message::MiddleAbrupt(Request::Question("What is current?".into())),
     };
     let addressed = Query::Send(request(Recipient::Address(address)));
     let upward = Query::Send(request(Recipient::Up));
@@ -160,9 +158,7 @@ fn thread_send_and_identification_refusals_survive_archive() {
         send_request: signal_flow::SendRequest {
             recipient: Recipient::Up,
             delivery: Delivery::Wake,
-            message: Message::MiddleAbrupt(Request::Question(
-                "whole body".into(),
-            )),
+            message: Message::MiddleAbrupt(Request::Question("whole body".into())),
         },
         native_session_id: "recorded-thread".into(),
     });
