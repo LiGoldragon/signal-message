@@ -26,6 +26,7 @@ pub enum SendRefusal {
     AlreadyConfigured,
     NotConfigured,
     NotSendServer(signal_flow::Process),
+    Oversized(signal_flow::SendPayloadSize),
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]

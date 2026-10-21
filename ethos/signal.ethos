@@ -9,7 +9,8 @@
 ; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ Address Recipient Request Process Lock NativeSessionId ]
+[ signal_flow:[ Address Recipient Request Process Lock NativeSessionId
+  SendPayloadSize ActualBytes MaximumBytes ]
   message_library:Configuration ]
 [ Send.{ Recipient Request }
   Configure.Configuration
@@ -34,4 +35,5 @@ Signal
   FlowUnreachable
   AlreadyConfigured
   NotConfigured
-  NotSendServer.Process ] ]
+  NotSendServer.Process
+  Oversized.SendPayloadSize ] ]

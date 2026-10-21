@@ -1,5 +1,12 @@
 # UPGRADES
 
+## 16.0.0 → 17.0.0 — typed oversized Flow refusal
+
+Adds `SendRefusal::Oversized(SendPayloadSize)` so Message preserves Flow’s
+actual and maximum rendered-prompt byte counts. Pins signal-flow 27.0.0
+(`cc524c8`), retaining its deployed Delivery contract. Repin Message peers
+together.
+
 ## 15.0.0 → 16.0.0 — signal-flow 25.0.0
 
 ### What breaks

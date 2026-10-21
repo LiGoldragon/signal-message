@@ -59,6 +59,10 @@ fn flow_and_message_refusals_survive_the_archive() {
         Response::Refused(SendRefusal::FlowUnreachable),
         Response::Refused(SendRefusal::NoLayer),
         Response::Refused(SendRefusal::Store("database unavailable".into())),
+        Response::Refused(SendRefusal::Oversized(signal_flow::SendPayloadSize {
+            actual_bytes: 65_537,
+            maximum_bytes: 65_536,
+        })),
     ] {
         assert_eq!(archived_response(&response), response);
     }
@@ -118,6 +122,7 @@ mod datom {
             "Refused.NotSendServer.{ 42 100 }",
             "Refused.NoLayer",
             "Refused.Store.«database unavailable»",
+            "Refused.Oversized.{ 65537 65536 }",
         ] {
             let response = Potential::<Response>::from(text)
                 .actualize(&mut budget())
