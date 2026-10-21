@@ -102,8 +102,8 @@ mod datom {
             "Send.{ Address.{ Mind flow Secondary } Wake MiddleAbrupt.Question.«What is current?» }",
             "Send.{ Up Wake MiddleAbrupt.Order.«Refresh the current flow.» }",
             "SendThread.{ { Up Wake MiddleAbrupt.Question.«whole body» } recorded-thread }",
-            "ObserveSends.1",
-            "ObserveThread.{ 1 recorded-thread }",
+            "ObserveSends.Some.1",
+            "ObserveThread.{ Some.1 recorded-thread }",
         ] {
             let query = Potential::<Query>::from(text)
                 .actualize(&mut budget())
