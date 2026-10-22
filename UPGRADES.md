@@ -1,5 +1,12 @@
 # UPGRADES
 
+## 18.0.0 → 18.0.1 — simplified Flow peer
+
+Pins signal-flow `5dee03` for Flow 0.39.0. The imported Message
+request and response types have unchanged layouts. Repin the Message
+producer closure and rebuild Message with Flow; Flow’s own root Query
+archive changes with the simplified launch profile.
+
 ## 16.0.0 → 17.0.0 — typed oversized Flow refusal
 
 Adds `SendRefusal::Oversized(SendPayloadSize)` so Message preserves Flow’s
