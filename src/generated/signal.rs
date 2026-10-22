@@ -63,6 +63,8 @@ pub struct ObservationInterrupted_Data {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Response {
+    Sent(signal_flow::SendReceipt),
+    Failed(signal_flow::SendFailure),
     SendAccepted(signal_flow::SendAcceptance),
     SendsObserved(signal_flow::SendObservation),
     SendChanged(signal_flow::DeliverySnapshot),

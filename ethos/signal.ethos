@@ -5,14 +5,16 @@
 
 Signal
 [ signal_flow:[ Address Process Lock SendPayloadSize SendRequest SendAcceptance DeliverySnapshot
-                SendObservation DeliveryCursor NativeSessionId ]
+                SendObservation DeliveryCursor NativeSessionId SendReceipt SendFailure ]
   message_library:Configuration ]
 [ Send.SendRequest
   SendThread.{ SendRequest NativeSessionId }
   ObserveSends.Option<DeliveryCursor>
   ObserveThread.{ Option<DeliveryCursor> NativeSessionId }
   Configure.Configuration ]
-[ SendAccepted.SendAcceptance
+[ Sent.SendReceipt
+  Failed.SendFailure
+  SendAccepted.SendAcceptance
   SendsObserved.SendObservation
   SendChanged.DeliverySnapshot
   ObservationInterrupted.{ Option<DeliveryCursor> String }
