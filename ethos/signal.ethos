@@ -4,8 +4,8 @@
 ; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ Address Process Lock SendPayloadSize SendRequest SendAcceptance DeliverySnapshot
-                SendObservation DeliveryCursor NativeSessionId ]
+[ signal_flow:[ Address Process Lock SendPayloadSize SendRequest SendAcceptance SendReceipt
+                SendFailure DeliverySnapshot SendObservation DeliveryCursor NativeSessionId ]
   message_library:Configuration ]
 [ Send.SendRequest
   SendThread.{ SendRequest NativeSessionId }
@@ -13,6 +13,8 @@ Signal
   ObserveThread.{ Option<DeliveryCursor> NativeSessionId }
   Configure.Configuration ]
 [ SendAccepted.SendAcceptance
+  Sent.SendReceipt
+  Failed.SendFailure
   SendsObserved.SendObservation
   SendChanged.DeliverySnapshot
   ObservationInterrupted.{ Option<DeliveryCursor> String }

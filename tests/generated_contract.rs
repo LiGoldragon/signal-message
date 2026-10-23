@@ -1,8 +1,9 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_flow::{
-    Address, Aspect, Delivery, DeliveryState, Layer, Message, Recipient, Request, SendAcceptance,
-    SendObservation,
+    Address, Aspect, Delivery, DeliveryState, HarnessKind, Layer, Message, NativeReceipt,
+    Recipient, Request, SendAcceptance, SendFailure, SendFailureReason, SendObservation,
+    SendReceipt,
 };
 use signal_message::{Configuration, Query, Response, SendRefusal};
 
@@ -64,6 +65,24 @@ fn accepted_and_observed_delivery_states_survive_archive() {
 }
 
 #[test]
+fn terminal_direct_send_outcomes_survive_archive() {
+    let sent = Response::Sent(SendReceipt {
+        logical_delivery_id: "logical-1".into(),
+        native_receipt: NativeReceipt {
+            harness_kind: HarnessKind::Claude,
+            native_session_id: "session-1".into(),
+            native_prompt_id: "prompt-1".into(),
+        },
+    });
+    let failed = Response::Failed(SendFailure {
+        logical_delivery_id_option: Some("logical-2".into()),
+        send_failure_reason: SendFailureReason::ReceiptUncertain,
+    });
+    assert_eq!(archived_response(&sent), sent);
+    assert_eq!(archived_response(&failed), failed);
+}
+
+#[test]
 fn flow_and_message_refusals_survive_the_archive() {
     for response in [
         Response::Configured,
@@ -115,6 +134,8 @@ mod datom {
     #[test]
     fn replies_keep_typed_refusal_paths() {
         for text in [
+            "Sent.{ logical-1 { Claude session-1 prompt-1 } }",
+            "Failed.{ Some.logical-2 ReceiptUncertain }",
             "Configured",
             "Refused.AlreadyConfigured",
             "Refused.FlowUnreachable",

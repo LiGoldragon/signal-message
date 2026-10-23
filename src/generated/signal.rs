@@ -64,6 +64,8 @@ pub struct ObservationInterrupted_Data {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum Response {
     SendAccepted(signal_flow::SendAcceptance),
+    Sent(signal_flow::SendReceipt),
+    Failed(signal_flow::SendFailure),
     SendsObserved(signal_flow::SendObservation),
     SendChanged(signal_flow::DeliverySnapshot),
     ObservationInterrupted(ObservationInterrupted_Data),

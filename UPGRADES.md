@@ -178,3 +178,9 @@ Clients resume with Flow's durable `DeliveryCursor`.
 Repin `meta-signal-message` and Message to this contract. Message must consume
 Flow's authenticated sender stream and forward updates on the originating
 connection.
+
+## 18.0.0 → 19.0.0 — terminal direct Send outcomes
+
+Abrupt Wake sends now carry Flow's terminal `Sent` or `Failed` response through
+Message. Durable Queue admission and its observation stream are unchanged.
+Pins signal-flow 29.0.0 at fd721ab.
