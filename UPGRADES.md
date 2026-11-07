@@ -2,7 +2,7 @@
 
 ## 20.0.0 → 21.0.0 — Flow request ids
 
-Pins signal-flow 56.0.0 (`1672bdc`), the accepted Flow 0.53.3 ordinary
+Pins signal-flow 56.0.0 (`a150f3b`), the accepted Flow 0.53.3 ordinary
 contract. Send outcomes and observations carry Flow's public visible forms:
 the RequestId, cursor, sender-filtered state and StoreIdentity, without Flow's
 private LogicalDeliveryId. The Message contract keeps its typed
