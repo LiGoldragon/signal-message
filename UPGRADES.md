@@ -1,5 +1,30 @@
 # UPGRADES
 
+## 19.0.0 → 20.0.0 — Flow 9f15 vocabulary, 0.33 codec stack
+
+### What breaks
+
+Pins signal-flow `9f159d9`, signal `7afb68b`, datom-codec `eabead4`, protos
+`3c7ade3`, generator ethos-zero `5a5daca`. The imported Flow types change shape:
+`Address` carries a `Model` where it carried a `Layer`; `Layer` is no longer
+exported and `Model` is, in its place. `Recipient` is the `Address` itself
+(there is no `Recipient::Up`); `SendRequest` is `{ recipient, sendable_message }`
+where `SendableMessage` is `HardAbrupt`, `MiddleAbrupt` or `Soft` over a
+`SendableRequest`; the former `Delivery` is gone. Address datoms read
+`{ Mind flow Sol }`; the request datom reads
+`Send.{ { Mind flow Sol } MiddleAbrupt.Question.«…» }`. Bare newtype text and
+text compaction follow datom-codec `eabead4`.
+
+Message's own `SendRefusal`, its authored Ethos and its archive layout are
+unchanged, including `NoLayer` and `Unidentified.Process`, which Flow's own
+refusal no longer shares (Flow now carries seat evidence). Whether `NoLayer`
+and the remaining shared names stay is a contract decision left open.
+
+### Deploy
+
+Repin `meta-signal-message` and `message` to this release together, with a Flow
+that speaks the 9f15 vocabulary. Older peers cannot greet this contract.
+
 ## 18.0.0 → 18.0.1 — simplified Flow peer
 
 Pins signal-flow `5dee03` for Flow 0.39.0. The imported Message

@@ -20,7 +20,7 @@ pub use signal::{ByteViewable, Restorable, Signal, Signalizable};
 
 /// Flow's request vocabulary is part of Message's public wire API.
 pub use signal_flow::Aspect;
-pub use signal_flow::{Address, Layer, Lock, Process, Recipient, Request};
+pub use signal_flow::{Address, Lock, Model, Process, Recipient, Request};
 
 /// The contract is identified on the wire by the digest of its authored
 /// Ethos source; the querying side greets with it.

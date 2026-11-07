@@ -1,8 +1,8 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_flow::{
-    Address, Aspect, Delivery, DeliveryState, Layer, Message, Recipient, Request, SendAcceptance,
-    SendObservation,
+    Address, Aspect, DeliveryState, Model, SendAcceptance, SendObservation, SendableMessage,
+    SendableRequest,
 };
 use signal_message::{Configuration, Query, Response, SendRefusal};
 
@@ -31,21 +31,24 @@ fn configuration_keeps_its_archive_shape() {
 }
 
 #[test]
-fn typed_address_and_up_requests_survive_the_archive() {
+fn typed_address_requests_survive_the_archive() {
     let address = Address {
         aspect: Aspect::Mind,
         topic: "flow".into(),
-        layer: Layer::Secondary,
+        model: Model::Sol,
     };
-    let request = |recipient| signal_flow::SendRequest {
-        recipient,
-        delivery: Delivery::Wake,
-        message: Message::MiddleAbrupt(Request::Question("What is current?".into())),
+    let request = |sendable_message| signal_flow::SendRequest {
+        recipient: address.clone(),
+        sendable_message,
     };
-    let addressed = Query::Send(request(Recipient::Address(address)));
-    let upward = Query::Send(request(Recipient::Up));
-    assert_eq!(archived_query(&addressed), addressed);
-    assert_eq!(archived_query(&upward), upward);
+    for message in [
+        SendableMessage::MiddleAbrupt(SendableRequest::Question("What is current?".into())),
+        SendableMessage::Soft(SendableRequest::Notice("Noted.".into())),
+        SendableMessage::HardAbrupt(SendableRequest::Order("Stop.".into())),
+    ] {
+        let query = Query::Send(request(message));
+        assert_eq!(archived_query(&query), query);
+    }
 }
 
 #[test]
@@ -89,7 +92,7 @@ mod datom {
     fn budget() -> Budget {
         Budget {
             remaining: 4096,
-            reader: ReaderBudget { remaining: 4096 },
+            reader: ReaderBudget::try_from(4096).unwrap(),
             depth: 0,
             maximum_depth: 1024,
         }
@@ -99,9 +102,9 @@ mod datom {
     fn requests_use_the_typed_recipient_and_request() {
         for text in [
             "Configure.{ /run/user/1001/message/message.sock /run/user/1001/message/message-owner.sock /run/user/1001/flow/flow.sock }",
-            "Send.{ Address.{ Mind flow Secondary } Wake MiddleAbrupt.Question.«What is current?» }",
-            "Send.{ Up Wake MiddleAbrupt.Order.«Refresh the current flow.» }",
-            "SendThread.{ { Up Wake MiddleAbrupt.Question.«whole body» } recorded-thread }",
+            "Send.{ { Mind flow Sol } MiddleAbrupt.Question.«What is current?» }",
+            "Send.{ { Mind flow Sol } Soft.Notice.Noted. }",
+            "SendThread.{ { { Mind flow Sol } MiddleAbrupt.Question.«whole body» } recorded-thread }",
             "ObserveSends.Some.1",
             "ObserveThread.{ Some.1 recorded-thread }",
         ] {
@@ -119,13 +122,13 @@ mod datom {
             "Refused.AlreadyConfigured",
             "Refused.FlowUnreachable",
             "Refused.Unidentified.{ 42 100 }",
-            "Refused.Unknown.Address.{ Mind flow Secondary }",
-            "Refused.Unknown.Lock.{ { Mind flow Primary } { Mind flow Secondary } 12345 }",
-            "Refused.Ended.{ Mind flow Primary }",
+            "Refused.Unknown.Address.{ Mind flow Sol }",
+            "Refused.Unknown.Lock.{ { Mind flow Astra } { Mind flow Sol } 12345 }",
+            "Refused.Ended.{ Mind flow Astra }",
             "Refused.Asleep",
             "Refused.NoneAbove",
             "Refused.OffRoute",
-            "Refused.Held.{ { Mind flow Primary } { Mind flow Secondary } 12345 }",
+            "Refused.Held.{ { Mind flow Astra } { Mind flow Sol } 12345 }",
             "Refused.Locked",
             "Refused.Lapsed",
             "Refused.NotMessage",
@@ -145,7 +148,7 @@ mod datom {
     #[test]
     fn a_send_request_is_not_a_reply() {
         assert!(
-            Potential::<Response>::from("Send.{ Up Wake MiddleAbrupt.Order.«refresh» }")
+            Potential::<Response>::from("Send.{ { Mind flow Sol } MiddleAbrupt.Order.«refresh» }")
                 .actualize(&mut budget())
                 .is_err()
         );
@@ -156,9 +159,14 @@ mod datom {
 fn thread_send_and_identification_refusals_survive_archive() {
     let query = Query::SendThread(signal_message::SendThread_Data {
         send_request: signal_flow::SendRequest {
-            recipient: Recipient::Up,
-            delivery: Delivery::Wake,
-            message: Message::MiddleAbrupt(Request::Question("whole body".into())),
+            recipient: Address {
+                aspect: Aspect::Mind,
+                topic: "flow".into(),
+                model: Model::Sol,
+            },
+            sendable_message: SendableMessage::MiddleAbrupt(SendableRequest::Question(
+                "whole body".into(),
+            )),
         },
         native_session_id: "recorded-thread".into(),
     });
