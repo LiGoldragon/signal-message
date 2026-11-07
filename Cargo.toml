@@ -1,6 +1,6 @@
 [package]
 name = "signal-message"
-version = "20.0.0"
+version = "21.0.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ datom = ["dep:datom-codec", "dep:protos", "signal-flow/datom", "signal/datom"]
 [dependencies]
 datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "eabead4", optional = true }
 protos = { git = "https://github.com/LiGoldragon/protos", rev = "3c7ade3", optional = true }
-signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "9f159d91f5ed08b161fe99da7f964434e4e584d5" }
+signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "b0ee247005c3227100cc8a86a28a82273cc5481c" }
 signal = { git = "https://github.com/LiGoldragon/signal", rev = "7afb68bcd19ce774f47d11c5e69f6e10054f78de", default-features = false }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 
