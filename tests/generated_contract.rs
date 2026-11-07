@@ -1,8 +1,8 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
 use signal_flow::{
-    Address, Aspect, DeliveryState, Model, SendAcceptance, SendObservation, SendableMessage,
-    SendableRequest,
+    Address, Aspect, Model, SendableMessage, SendableRequest, VisibleDeliveryState,
+    VisibleSendAcceptance, VisibleSendObservation,
 };
 use signal_message::{Configuration, Query, Response, SendRefusal};
 
@@ -53,15 +53,16 @@ fn typed_address_requests_survive_the_archive() {
 
 #[test]
 fn accepted_and_observed_delivery_states_survive_archive() {
-    let accepted = Response::SendAccepted(SendAcceptance {
-        logical_delivery_id: "logical-1".into(),
+    let accepted = Response::SendAccepted(VisibleSendAcceptance {
+        request_id: "k7ph".into(),
         delivery_cursor: 1,
-        delivery_state: DeliveryState::Queued,
+        visible_delivery_state: VisibleDeliveryState::Queued,
     });
     assert_eq!(archived_response(&accepted), accepted);
-    let observed = Response::SendsObserved(SendObservation {
+    let observed = Response::SendsObserved(VisibleSendObservation {
+        store_identity: "store-1".into(),
         delivery_cursor: 1,
-        delivery_snapshot_vector: vec![],
+        visible_delivery_snapshot_vector: vec![],
     });
     assert_eq!(archived_response(&observed), observed);
 }

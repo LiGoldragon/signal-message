@@ -2,11 +2,11 @@
 
 ## 20.0.0 → 21.0.0 — Flow request ids
 
-Pins signal-flow 56.0.0 (`b0ee247`), the accepted Flow 0.53.3 ordinary
-contract. The Message contract keeps its existing vocabulary, including the
-typed `FlowProtocolMismatch`; its imported Flow request and address types now
-belong to the request-id contract graph. Repin meta-signal-message and Message
-together.
+Pins signal-flow 56.0.0 (`1672bdc`), the accepted Flow 0.53.3 ordinary
+contract. Send outcomes and observations carry Flow's public visible forms:
+the RequestId, cursor, sender-filtered state and StoreIdentity, without Flow's
+private LogicalDeliveryId. The Message contract keeps its typed
+`FlowProtocolMismatch`. Repin meta-signal-message and Message together.
 
 ## 19.0.0 → 20.0.0 — Flow 9f15 vocabulary, 0.33 codec stack
 

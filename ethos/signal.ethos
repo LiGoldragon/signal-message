@@ -1,22 +1,23 @@
-; Message forwards Flow's durable logical delivery and exposes its
-; sender-filtered status stream. The socket peer is the authenticated sender.
+; Message forwards Flow's public request id and sender-filtered status stream.
+; The socket peer is the authenticated sender.
 ; Configure sets the ordinary, Meta and Flow socket paths. An ordinary
 ; Configure is refused after Meta Configure has been accepted.
 
 Signal
-[ signal_flow:[ Address Process Lock SendPayloadSize SendRequest SendAcceptance DeliverySnapshot
-                SendObservation DeliveryCursor NativeSessionId SendReceipt SendFailure ]
+[ signal_flow:[ Address Process Lock SendPayloadSize SendRequest VisibleSendAcceptance
+                VisibleDeliverySnapshot VisibleSendObservation DeliveryCursor NativeSessionId
+                VisibleSendReceipt VisibleSendFailure ]
   message_library:Configuration ]
 [ Send.SendRequest
   SendThread.{ SendRequest NativeSessionId }
   ObserveSends.Option<DeliveryCursor>
   ObserveThread.{ Option<DeliveryCursor> NativeSessionId }
   Configure.Configuration ]
-[ Sent.SendReceipt
-  Failed.SendFailure
-  SendAccepted.SendAcceptance
-  SendsObserved.SendObservation
-  SendChanged.DeliverySnapshot
+[ Sent.VisibleSendReceipt
+  Failed.VisibleSendFailure
+  SendAccepted.VisibleSendAcceptance
+  SendsObserved.VisibleSendObservation
+  SendChanged.VisibleDeliverySnapshot
   ObservationInterrupted.{ Option<DeliveryCursor> String }
   Configured
   Refused.SendRefusal ]
