@@ -36,4 +36,5 @@ Signal
   AlreadyConfigured
   NotConfigured
   NotSendServer.Process
-  Oversized.SendPayloadSize ] ]
+  Oversized.SendPayloadSize
+  FlowProtocolMismatch ] ]

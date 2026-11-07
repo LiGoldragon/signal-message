@@ -72,6 +72,7 @@ fn flow_and_message_refusals_survive_the_archive() {
         Response::Configured,
         Response::Refused(SendRefusal::AlreadyConfigured),
         Response::Refused(SendRefusal::FlowUnreachable),
+        Response::Refused(SendRefusal::FlowProtocolMismatch),
         Response::Refused(SendRefusal::NoLayer),
         Response::Refused(SendRefusal::Store("database unavailable".into())),
         Response::Refused(SendRefusal::Oversized(signal_flow::SendPayloadSize {
@@ -121,6 +122,7 @@ mod datom {
             "Configured",
             "Refused.AlreadyConfigured",
             "Refused.FlowUnreachable",
+            "Refused.FlowProtocolMismatch",
             "Refused.Unidentified.{ 42 100 }",
             "Refused.Unknown.Address.{ Mind flow Sol }",
             "Refused.Unknown.Lock.{ { Mind flow Astra } { Mind flow Sol } 12345 }",
@@ -179,5 +181,96 @@ fn thread_send_and_identification_refusals_survive_archive() {
         })),
     ] {
         assert_eq!(archived_response(&response), response);
+    }
+}
+
+/// The refusals that existed before `FlowProtocolMismatch` was appended keep their archived
+/// bytes: the mirror is the earlier enum, variant for variant, in the earlier order.
+#[derive(rkyv::Archive, rkyv::Serialize, Clone)]
+#[expect(dead_code, reason = "a layout mirror: only some variants are compared")]
+enum EarlierSendRefusal {
+    Unidentified(signal_message::Process),
+    Unknown(signal_message::Unknown_Data),
+    Ended(Address),
+    Asleep,
+    NoneAbove,
+    OffRoute,
+    Held(signal_flow::Lock),
+    Locked,
+    Lapsed,
+    NotMessage,
+    NoLayer,
+    Store(String),
+    FlowUnreachable,
+    AlreadyConfigured,
+    NotConfigured,
+    NotSendServer(signal_message::Process),
+    Oversized(signal_flow::SendPayloadSize),
+}
+
+#[test]
+fn appending_the_mismatch_refusal_keeps_the_earlier_archives() {
+    let process = signal_message::Process {
+        pid: 42,
+        started: 100,
+    };
+    let address = Address {
+        aspect: Aspect::Mind,
+        topic: "flow".into(),
+        model: Model::Sol,
+    };
+    let bytes = |value: &dyn Fn() -> Vec<u8>| value();
+    let pairs: Vec<(SendRefusal, EarlierSendRefusal)> = vec![
+        (
+            SendRefusal::Unidentified(process.clone()),
+            EarlierSendRefusal::Unidentified(process.clone()),
+        ),
+        (
+            SendRefusal::Ended(address.clone()),
+            EarlierSendRefusal::Ended(address.clone()),
+        ),
+        (SendRefusal::Asleep, EarlierSendRefusal::Asleep),
+        (SendRefusal::OffRoute, EarlierSendRefusal::OffRoute),
+        (SendRefusal::Lapsed, EarlierSendRefusal::Lapsed),
+        (SendRefusal::NoLayer, EarlierSendRefusal::NoLayer),
+        (
+            SendRefusal::Store("database unavailable".into()),
+            EarlierSendRefusal::Store("database unavailable".into()),
+        ),
+        (
+            SendRefusal::FlowUnreachable,
+            EarlierSendRefusal::FlowUnreachable,
+        ),
+        (
+            SendRefusal::AlreadyConfigured,
+            EarlierSendRefusal::AlreadyConfigured,
+        ),
+        (
+            SendRefusal::NotSendServer(process.clone()),
+            EarlierSendRefusal::NotSendServer(process),
+        ),
+        (
+            SendRefusal::Oversized(signal_flow::SendPayloadSize {
+                actual_bytes: 65_537,
+                maximum_bytes: 65_536,
+            }),
+            EarlierSendRefusal::Oversized(signal_flow::SendPayloadSize {
+                actual_bytes: 65_537,
+                maximum_bytes: 65_536,
+            }),
+        ),
+    ];
+    for (current, earlier) in pairs {
+        let now = bytes(&|| {
+            rkyv::to_bytes::<rkyv::rancor::Error>(&current)
+                .unwrap()
+                .to_vec()
+        });
+        let then = bytes(&|| {
+            rkyv::to_bytes::<rkyv::rancor::Error>(&earlier)
+                .unwrap()
+                .to_vec()
+        });
+        assert_eq!(now, then, "{current:?}");
     }
 }

@@ -15,8 +15,14 @@ where `SendableMessage` is `HardAbrupt`, `MiddleAbrupt` or `Soft` over a
 `Send.{ { Mind flow Sol } MiddleAbrupt.Question.«…» }`. Bare newtype text and
 text compaction follow datom-codec `eabead4`.
 
-Message's own `SendRefusal`, its authored Ethos and its archive layout are
-unchanged, including `NoLayer` and `Unidentified.Process`, which Flow's own
+`SendRefusal` gains one appended variant, `FlowProtocolMismatch`, carrying no
+payload: Flow answered with a response kind the operation does not allow, or
+with a public response that could not be decoded. It is distinct from
+`FlowUnreachable`, which is only a failure to connect or exchange. Appending
+leaves every earlier variant's archived bytes unchanged (a test compares them
+against the earlier enum). Because 20.0.0 was never published, this is part of
+the 20.0.0 wire, not a further number. Message's other refusals are unchanged,
+including `NoLayer` and `Unidentified.Process`, which Flow's own
 refusal no longer shares (Flow now carries seat evidence). Whether `NoLayer`
 and the remaining shared names stay is a contract decision left open.
 
