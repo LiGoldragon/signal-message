@@ -2,11 +2,12 @@
 
 ## 21.0.0 → 21.0.1 — signal-flow 57
 
-Pins signal-flow 57.0.0 (`8e56457`), Flow 0.53.3's ordinary contract: a
+Pins signal-flow 57.0.0 (`3d0a4cd`), Flow 0.53.3's ordinary contract: a
 Stop carries its background work, a Refresh of a working flow answers
 `RefreshQueued`, a frame that decodes as no Query is answered
-`FrameRefused` and observed through `Observe.Undecodable`, and
-`Observe.TurnEnds` streams turn ends. The Message contract and every type it takes from
+`FrameRefused` and observed through `Observe.Undecodable`,
+`Observe.TurnEnds` streams turn ends, and `Observe.Metaflows` streams the
+metaflows and each change. The Message contract and every type it takes from
 signal-flow are unchanged; the repin keeps one signal-flow in every build
 that holds Message beside Flow. Repin meta-signal-message and Message
 together.
