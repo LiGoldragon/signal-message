@@ -1,56 +1,37 @@
 {
   description = "signal-message — Signal contract for Message ingress";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    crane.url = "github:ipetkov/crane";
-  };
+  inputs.base.url = "github:LiGoldragon/build-base";
 
-  outputs = { self, nixpkgs, flake-utils, fenix, crane }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        toolchain = fenix.packages.${system}.complete.withComponents [
-          "cargo"
-          "rustc"
-          "rustfmt"
-          "clippy"
-          "rust-analyzer"
-          "rust-src"
-        ];
-        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-        ethosFilter = path: type:
-          type == "regular" && pkgs.lib.hasSuffix ".ethos" path;
-        sourceFilter = path: type:
-          type == "directory" || (craneLib.filterCargoSources path type) || (ethosFilter path type);
-        src = pkgs.lib.cleanSourceWith {
-          src = ./.;
-          filter = sourceFilter;
-          name = "source";
+  # Cargo.nix is generated from Cargo.lock by the build base's crate2nix and
+  # committed, so evaluation imports no derivation:
+  #   nix shell github:LiGoldragon/build-base#toolchain github:LiGoldragon/build-base#crate2nix -c crate2nix generate
+  outputs =
+    { self, base }:
+    base.lib.workspaceOutputs {
+      cargoNix = ./Cargo.nix;
+
+      # Every test runs with every feature on.
+      memberChecks = { check, ... }: { signal-message = check "signal-message" [ "default" "datom" ]; };
+
+      extraChecks =
+        { pkgs, toolchain, check, doc, clippy, ... }:
+        let
+          manifest = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+          rust = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [ ./src ./tests ];
+          };
+        in
+        {
+          # The tests under the default feature set alone.
+          test-default = check "signal-message" [ "default" ];
+          fmt = pkgs.runCommand "signal-message-fmt" { nativeBuildInputs = [ toolchain ]; } ''
+            rustfmt --check --edition ${manifest.package.edition} ${rust}/src/lib.rs ${rust}/tests/*.rs
+            touch $out
+          '';
+          clippy = clippy "signal-message" [ "default" "datom" ] [ "-D" "warnings" ];
+          doc = doc "signal-message" [ "default" "datom" ] [ "-D" "warnings" ];
         };
-        commonArgs = { inherit src; strictDeps = true; };
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-      in
-      {
-        packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
-        checks = {
-          build = craneLib.cargoBuild (commonArgs // { inherit cargoArtifacts; });
-          test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
-          test-generated-contract = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--test generated_contract"; });
-          test-datom = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--features datom --test generated_contract"; });
-          test-doc = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; cargoTestExtraArgs = "--doc"; });
-          doc = craneLib.cargoDoc (commonArgs // { inherit cargoArtifacts; RUSTDOCFLAGS = "-D warnings"; });
-          fmt = craneLib.cargoFmt { inherit src; };
-          clippy = craneLib.cargoClippy (commonArgs // { inherit cargoArtifacts; cargoClippyExtraArgs = "--all-targets --all-features -- -D warnings"; });
-        };
-        devShells.default = pkgs.mkShell {
-          name = "signal-message";
-          packages = [ pkgs.jujutsu pkgs.pkg-config toolchain ];
-        };
-      });
+    };
 }

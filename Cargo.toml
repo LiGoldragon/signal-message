@@ -1,6 +1,6 @@
 [package]
 name = "signal-message"
-version = "21.0.1"
+version = "22.0.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -14,16 +14,23 @@ default = []
 datom = ["dep:datom-codec", "dep:protos", "signal-flow/datom", "signal/datom"]
 
 [dependencies]
-datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "eabead4", optional = true }
-protos = { git = "https://github.com/LiGoldragon/protos", rev = "3c7ade3", optional = true }
-signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "3d0a4cdd0364a30e5586eac7db59917faca5072f" }
-signal = { git = "https://github.com/LiGoldragon/signal", rev = "7afb68bcd19ce774f47d11c5e69f6e10054f78de", default-features = false }
+datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "09a0526", optional = true }
+protos = { git = "https://github.com/LiGoldragon/protos", rev = "c93b598", optional = true }
+signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "6881724" }
+signal = { git = "https://github.com/LiGoldragon/signal", rev = "6d4eb74", default-features = false }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 
+[dev-dependencies]
+flow-ethos = { git = "https://github.com/LiGoldragon/flow", rev = "d1effd4b", default-features = false }
+
 [build-dependencies]
-ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "07714b0171802787bea1eefe4caa2d826d9c4030" }
+ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "1976e45" }
 
 [lints.rust]
 unsafe_code = "forbid"
 unused = { level = "warn", priority = -1 }
 dead_code = "warn"
+
+# The generated contract is committed byte for byte from its ethos source.
+[lints.clippy]
+large_enum_variant = "allow"

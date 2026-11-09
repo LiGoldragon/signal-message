@@ -1,5 +1,25 @@
 # UPGRADES
 
+## 21.0.1 → 22.0.0 — ethos-zero 22, signal-flow 58, on build-base 404cf8d
+
+Pins signal-flow 58.0.1 (`6881724`), signal 11.0.0 (`6d4eb74`), datom-codec
+`09a0526`, protos `c93b598` and generator ethos-zero 22.0.0 (`1976e45`);
+flow-ethos `d1effd4b` comes through signal-flow and is a dev-dependency at
+the same revision. Every datom text form is unchanged.
+
+- ethos-zero 22 makes each one-type head a newtype: the Configuration fields
+  `Ordinary`, `Meta` and `Flow` are tuple structs over String, and so are the
+  signal-flow and flow-ethos scalars Message carries (`Topic`, `RequestId`,
+  `DeliveryCursor`, `NativeSessionId`, `Pid`, `Started`, `ActualBytes`,
+  `MaximumBytes`). A consumer wraps a value with the constructor and reads it
+  with `.0`.
+- `Recipient` is gone from signal-flow and from this crate's re-exports;
+  `SendRequest` holds `address`, an `Address`.
+- `SendRefusal.Unknown` is written `[ Address Lock ]`; the generated Rust and
+  the datoms are the same as before.
+- The flake is the build-base form with a committed Cargo.nix; the third-party
+  crates sit at build-base's version set.
+
 ## 21.0.0 → 21.0.1 — signal-flow 57
 
 Pins signal-flow 57.0.0 (`3d0a4cd`), Flow 0.53.3's ordinary contract: a

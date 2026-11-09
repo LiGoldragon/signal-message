@@ -22,7 +22,7 @@ Signal
   Configured
   Refused.SendRefusal ]
 [ SendRefusal.[ Unidentified.Process
-  Unknown.[ Address.Address Lock.Lock ]
+  Unknown.[ Address Lock ]
   Ended.Address
   Asleep
   NoneAbove

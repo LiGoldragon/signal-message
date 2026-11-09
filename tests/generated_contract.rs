@@ -1,10 +1,12 @@
 //! Requests and replies survive their archive and have concrete datoms.
 
+use flow_ethos::{Pid, Started};
 use signal_flow::{
-    Address, Aspect, Model, SendableMessage, SendableRequest, VisibleDeliveryState,
+    ActualBytes, Address, Aspect, DeliveryCursor, MaximumBytes, Model, NativeSessionId, RequestId,
+    SendableMessage, SendableRequest, StoreIdentity, Topic, VisibleDeliveryState,
     VisibleSendAcceptance, VisibleSendObservation,
 };
-use signal_message::{Configuration, Query, Response, SendRefusal};
+use signal_message::{Configuration, Flow, Meta, Ordinary, Query, Response, SendRefusal};
 
 fn archived_query(query: &Query) -> Query {
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(query).expect("archives");
@@ -18,9 +20,9 @@ fn archived_response(response: &Response) -> Response {
 
 fn configuration() -> Configuration {
     Configuration {
-        ordinary: "/run/user/1001/message/message.sock".into(),
-        meta: "/run/user/1001/message/message-owner.sock".into(),
-        flow: "/run/user/1001/flow/flow.sock".into(),
+        ordinary: Ordinary("/run/user/1001/message/message.sock".into()),
+        meta: Meta("/run/user/1001/message/message-owner.sock".into()),
+        flow: Flow("/run/user/1001/flow/flow.sock".into()),
     }
 }
 
@@ -34,11 +36,11 @@ fn configuration_keeps_its_archive_shape() {
 fn typed_address_requests_survive_the_archive() {
     let address = Address {
         aspect: Aspect::Mind,
-        topic: "flow".into(),
+        topic: Topic("flow".into()),
         model: Model::Sol,
     };
     let request = |sendable_message| signal_flow::SendRequest {
-        recipient: address.clone(),
+        address: address.clone(),
         sendable_message,
     };
     for message in [
@@ -54,14 +56,14 @@ fn typed_address_requests_survive_the_archive() {
 #[test]
 fn accepted_and_observed_delivery_states_survive_archive() {
     let accepted = Response::SendAccepted(VisibleSendAcceptance {
-        request_id: "k7ph".into(),
-        delivery_cursor: 1,
+        request_id: RequestId("k7ph".into()),
+        delivery_cursor: DeliveryCursor(1),
         visible_delivery_state: VisibleDeliveryState::Queued,
     });
     assert_eq!(archived_response(&accepted), accepted);
     let observed = Response::SendsObserved(VisibleSendObservation {
-        store_identity: "store-1".into(),
-        delivery_cursor: 1,
+        store_identity: StoreIdentity("store-1".into()),
+        delivery_cursor: DeliveryCursor(1),
         visible_delivery_snapshot_vector: vec![],
     });
     assert_eq!(archived_response(&observed), observed);
@@ -77,8 +79,8 @@ fn flow_and_message_refusals_survive_the_archive() {
         Response::Refused(SendRefusal::NoLayer),
         Response::Refused(SendRefusal::Store("database unavailable".into())),
         Response::Refused(SendRefusal::Oversized(signal_flow::SendPayloadSize {
-            actual_bytes: 65_537,
-            maximum_bytes: 65_536,
+            actual_bytes: ActualBytes(65_537),
+            maximum_bytes: MaximumBytes(65_536),
         })),
     ] {
         assert_eq!(archived_response(&response), response);
@@ -162,23 +164,23 @@ mod datom {
 fn thread_send_and_identification_refusals_survive_archive() {
     let query = Query::SendThread(signal_message::SendThread_Data {
         send_request: signal_flow::SendRequest {
-            recipient: Address {
+            address: Address {
                 aspect: Aspect::Mind,
-                topic: "flow".into(),
+                topic: Topic("flow".into()),
                 model: Model::Sol,
             },
             sendable_message: SendableMessage::MiddleAbrupt(SendableRequest::Question(
                 "whole body".into(),
             )),
         },
-        native_session_id: "recorded-thread".into(),
+        native_session_id: NativeSessionId("recorded-thread".into()),
     });
     assert_eq!(archived_query(&query), query);
     for response in [
         Response::Refused(SendRefusal::NotConfigured),
         Response::Refused(SendRefusal::NotSendServer(signal_message::Process {
-            pid: 42,
-            started: 100,
+            pid: Pid(42),
+            started: Started(100),
         })),
     ] {
         assert_eq!(archived_response(&response), response);
@@ -212,12 +214,12 @@ enum EarlierSendRefusal {
 #[test]
 fn appending_the_mismatch_refusal_keeps_the_earlier_archives() {
     let process = signal_message::Process {
-        pid: 42,
-        started: 100,
+        pid: Pid(42),
+        started: Started(100),
     };
     let address = Address {
         aspect: Aspect::Mind,
-        topic: "flow".into(),
+        topic: Topic("flow".into()),
         model: Model::Sol,
     };
     let bytes = |value: &dyn Fn() -> Vec<u8>| value();
@@ -252,12 +254,12 @@ fn appending_the_mismatch_refusal_keeps_the_earlier_archives() {
         ),
         (
             SendRefusal::Oversized(signal_flow::SendPayloadSize {
-                actual_bytes: 65_537,
-                maximum_bytes: 65_536,
+                actual_bytes: ActualBytes(65_537),
+                maximum_bytes: MaximumBytes(65_536),
             }),
             EarlierSendRefusal::Oversized(signal_flow::SendPayloadSize {
-                actual_bytes: 65_537,
-                maximum_bytes: 65_536,
+                actual_bytes: ActualBytes(65_537),
+                maximum_bytes: MaximumBytes(65_536),
             }),
         ),
     ];
