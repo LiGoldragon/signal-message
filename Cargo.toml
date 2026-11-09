@@ -16,7 +16,7 @@ datom = ["dep:datom-codec", "dep:protos", "signal-flow/datom", "signal/datom"]
 [dependencies]
 datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "eabead4", optional = true }
 protos = { git = "https://github.com/LiGoldragon/protos", rev = "3c7ade3", optional = true }
-signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "065730ff8b628657a692e8890714cadde881f1d4" }
+signal-flow = { git = "https://github.com/LiGoldragon/signal-flow", rev = "8e56457d41552f07df5b39a0b9e6e7248c72da43" }
 signal = { git = "https://github.com/LiGoldragon/signal", rev = "7afb68bcd19ce774f47d11c5e69f6e10054f78de", default-features = false }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 
