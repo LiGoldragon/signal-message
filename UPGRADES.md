@@ -1,5 +1,14 @@
 # UPGRADES
 
+## 21.0.0 → 21.0.1 — signal-flow 57
+
+Pins signal-flow 57.0.0 (`edfb7e6`), Flow 0.53.3's ordinary contract: a
+Stop carries its background work, and a Refresh of a working flow answers
+`RefreshQueued`. The Message contract and every type it takes from
+signal-flow are unchanged; the repin keeps one signal-flow in every build
+that holds Message beside Flow. Repin meta-signal-message and Message
+together.
+
 ## 20.0.0 → 21.0.0 — Flow request ids
 
 Pins signal-flow 56.0.0 (`a150f3b`), the accepted Flow 0.53.3 ordinary
