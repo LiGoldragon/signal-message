@@ -1,3 +1,10 @@
+## 22.0.1: flow-ethos 5c61d666 (0.54.0) and signal-flow 15790be
+
+The flow-ethos pin (a dev-dependency) moves from d1effd4b to flow main
+5c61d666 (0.54.0, the flow-ethos source unchanged) and signal-flow to
+15790be, which pins the same. The contract and every datom form are
+unchanged.
+
 # UPGRADES
 
 ## 21.0.1 → 22.0.0 — ethos-zero 22, signal-flow 58, on build-base 404cf8d
