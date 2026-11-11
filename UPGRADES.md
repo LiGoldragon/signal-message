@@ -1,3 +1,12 @@
+## 23.0.0: signal-flow 60.0.0 and flow-ethos 0.54.3 (Flow 0.54.3)
+
+signal-flow moves from 58.0.2 (`15790be`) to 60.0.0 (`04a72fd`) and
+flow-ethos from 5c61d666 to `062ef9e1`. This contract's own text is
+unchanged, but the `SendRequest` it carries is signal-flow's: the living's
+words are `Living.{ Context Verbatim }` where they were `Psyche.Said`, and
+`Psyches` is gone, so a Send of a Result, Notice, Task or Done is written as
+before and encoded one place up. `VisibleSender` carries `Unbound`.
+
 ## 22.0.1: flow-ethos 5c61d666 (0.54.0) and signal-flow 15790be
 
 The flow-ethos pin (a dev-dependency) moves from d1effd4b to flow main
