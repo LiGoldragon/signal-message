@@ -25,7 +25,7 @@ fn a_peer_built_from_another_source_is_refused_with_this_digest() {
 #[test]
 fn the_flow_contract_is_refused_on_the_message_socket() {
     assert_eq!(
-        Query::receipt(&<signal_flow::Query as Contracted>::greeting()),
+        Query::receipt(&<signal_flow::Input as Contracted>::greeting()),
         HandshakeReceipt::GreetingRefused(HandshakeRejection::ContractMismatch(
             Query::contract_digest()
         ))
